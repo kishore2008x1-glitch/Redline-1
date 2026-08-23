@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Redline — Security review for AI-generated code</title>
+<meta name="description" content="Redline scans the apps you built with Lovable, Bolt, Replit and v0 for the vulnerabilities vibe coding leaves behind — before you ship them." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0A0E12;
+    --bg-grid: #0D1218;
+    --surface: #11171E;
+    --surface-2: #161D25;
+    --line: #212A33;
+    --line-soft: #1A222A;
+    --text: #E9EDEF;
+    --text-dim: #93A0AC;
+    --text-faint: #5C6773;
+    --critical: #FF5C5C;
+    --critical-dim: #4A2529;
+    --warn: #FFB020;
+    --warn-dim: #453419;
+    --safe: #33D9A8;
+    --safe-dim: #143A31;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --maxw: 1160px;
+  }
+
+  *,*::before,*::after{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  html,body{ max-width:100%; overflow-x:hidden; }
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(255,92,92,0.08), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(51,217,168,0.05), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  img,svg{ display:block; max-width:100%; }
+  a{ color: inherit; }
+  ::selection{ background: var(--critical); color: #12070a; }
+
+  :focus-visible{
+    outline: 2px solid var(--safe);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  .wrap{ max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position: sticky; top:0; z-index: 40;
+    background: rgba(10,14,18,0.86);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .nav-inner{
+    max-width: var(--maxw); margin:0 auto; padding: 16px 28px;
+    display:flex; align-items:center; justify-content:space-between; gap: 24px;
+  }
+  .logo{
+    display:flex; align-items:center; gap:9px;
+    font-family: var(--mono); font-weight:700; font-size: 16px;
+    letter-spacing: 0.02em; text-decoration:none; color: var(--text);
+  }
+  .logo-mark{
+    width: 9px; height:9px; border-radius:2px; background: var(--critical);
+    box-shadow: 0 0 0 3px var(--critical-dim);
+  }
+  .nav-links{ display:flex; align-items:center; gap: 32px; }
+  .nav-links a{
+    font-size: 14px; color: var(--text-dim); text-decoration:none;
+    transition: color .15s ease;
+  }
+  .nav-links a:hover{ color: var(--text); }
+  .nav-toggle{
+    display:none; background:none; border:1px solid var(--line); border-radius:7px;
+    width:38px; height:38px; align-items:center; justify-content:center; cursor:pointer;
+    flex-shrink:0;
+  }
+  .nav-toggle span, .nav-toggle::before, .nav-toggle::after{
+    content:''; display:block; width:16px; height:1.5px; background: var(--text-dim);
+    position:relative; transition: transform .2s ease, opacity .2s ease;
+  }
+  .nav-toggle::before{ position:absolute; transform: translateY(-5px); }
+  .nav-toggle::after{ position:absolute; transform: translateY(5px); }
+  .nav.open .nav-toggle span{ opacity:0; }
+  .nav.open .nav-toggle::before{ transform: rotate(45deg); }
+  .nav.open .nav-toggle::after{ transform: rotate(-45deg); }
+  .btn{
+    font-family: var(--sans); font-weight:600; font-size: 14px;
+    padding: 10px 18px; border-radius: 7px; border: 1px solid transparent;
+    cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+  }
+  .btn-primary{ background: var(--text); color: #0A0E12; }
+  .btn-primary:hover{ transform: translateY(-1px); background:#fff; }
+  .btn-ghost{ border-color: var(--line); color: var(--text); background: transparent; }
+  .btn-ghost:hover{ border-color: var(--text-dim); }
+  .nav .btn{ padding: 9px 16px; font-size: 13.5px; }
+
+  /* ---------- utility ---------- */
+  .eyebrow{
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.14em;
+    color: var(--critical); text-transform: uppercase; font-weight:600;
+    display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow::before{
+    content:''; width:16px; height:1px; background: var(--critical);
+  }
+  h1,h2,h3{ margin:0; font-family: var(--sans); letter-spacing: -0.01em; }
+  .section{ padding: 96px 0; border-bottom: 1px solid var(--line-soft); }
+  .section-head{ max-width: 640px; margin-bottom: 52px; }
+  .section-head h2{ font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; line-height:1.2; }
+  .section-head p{ color: var(--text-dim); font-size: 16px; margin-top:14px; }
+  code, .code{ font-family: var(--mono); }
+
+  /* ---------- HERO ---------- */
+  .hero{
+    padding: 76px 0 96px;
+    display:grid; grid-template-columns: 1.05fr 1fr; gap: 56px; align-items:center;
+  }
+  .hero h1{
+    font-size: clamp(34px, 4.6vw, 54px); font-weight: 800; line-height:1.08;
+    margin: 18px 0 20px; max-width: 15ch;
+  }
+  .hero h1 em{
+    font-style: normal; color: var(--critical);
+    text-decoration: line-through solid var(--critical) 3px;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0;
+  }
+  .hero p.lede{ font-size: 17px; color: var(--text-dim); max-width: 46ch; }
+  .hero-form{ margin-top: 30px; display:flex; gap:10px; max-width: 440px; }
+  .hero-form input[type=email]{
+    flex:1; min-width:0; background: var(--surface); border:1px solid var(--line);
+    color: var(--text); border-radius:7px; padding: 12px 14px; font-size: 14.5px; font-family: var(--sans);
+  }
+  .hero-form input::placeholder{ color: var(--text-faint); }
+  .hero-note{ margin-top:14px; font-size: 13px; color: var(--text-faint); }
+  .hero-note b{ color: var(--text-dim); font-weight:600; }
+  .form-msg{ margin-top:12px; font-size: 13.5px; font-family: var(--mono); min-height: 18px; }
+  .form-msg.ok{ color: var(--safe); }
+  .form-msg.err{ color: var(--critical); }
+
+  /* ---------- HERO / LIVE SCANNER ---------- */
+  .hero{ padding: 48px 0 64px; display:grid; grid-template-columns:minmax(280px,.72fr) minmax(0,1.28fr); gap:42px; align-items:center; min-width:0; }
+  .hero-copy,.hero-scanner{ min-width:0; width:100%; }
+  .hero h1{ font-size:clamp(34px,4.6vw,54px); font-weight:800; line-height:1.08; margin:18px 0 20px; max-width:15ch; }
+  .hero h1 em{ font-style:normal; color:var(--critical); }
+  .hero p.lede{ font-size:17px; color:var(--text-dim); max-width:48ch; }
+  .hero-points{ display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:24px; color:var(--text-dim); font:500 12px var(--mono); }
+  .hero-points span{ white-space:nowrap; }
+  .scanner{ background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 30px 70px -40px rgba(0,0,0,.8); min-width:0; }
+  .scanner-topline{ display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 14px; border-bottom:1px solid var(--line); background:var(--surface-2); min-width:0; }
+  .scanner-kicker,.scanner-engine{ font:600 10.5px var(--mono); letter-spacing:.08em; color:var(--text-faint); }
+  .scanner-kicker{ color:var(--safe); }
+  .scanner-engine{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .scanner-tabs{ display:flex; overflow-x:auto; border-bottom:1px solid var(--line); background:var(--surface-2); scrollbar-width:none; }
+  .scanner-tabs::-webkit-scrollbar{display:none;}
+  .scanner-tab{ flex:0 0 auto; font:500 13px var(--mono); color:var(--text-dim); background:none; border:0; padding:13px 18px; cursor:pointer; border-bottom:2px solid transparent; }
+  .scanner-tab.active{ color:var(--text); border-bottom-color:var(--safe); }
+  .scanner-body{ padding:18px; min-width:0; }
+  .scanner-pane{display:none;min-width:0}.scanner-pane.active{display:block}
+  .scanner textarea,.scanner input[type=url]{ width:100%; max-width:100%; min-width:0; background:var(--bg); border:1px solid var(--line-soft); color:var(--text); border-radius:8px; padding:13px 14px; font:13px/1.6 var(--mono); }
+  .scanner textarea{ min-height:190px; resize:vertical; }
+  .scanner input[type=url]{ font-size:13.5px; }
+  .scanner input::placeholder,.scanner textarea::placeholder{color:var(--text-faint)}
+  .scanner-hint{font-size:12px;color:var(--text-faint);margin-top:8px}
+  .dropzone{ min-height:190px; border:1px dashed var(--line); border-radius:9px; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; cursor:pointer; padding:20px; transition:border-color .15s,background .15s; }
+  .dropzone:hover,.dropzone.dragover{border-color:var(--safe);background:rgba(51,217,168,.035)}
+  .dropzone input{display:none}.dropzone strong{font-size:14px}.dropzone span:last-child{font:12px var(--mono);color:var(--text-faint)}
+  .drop-icon{font:24px var(--mono);color:var(--safe)}
+  .file-meta{font:12px var(--mono);color:var(--text-dim);margin-top:8px;min-height:16px}
+  .scanner-options{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:14px;color:var(--text-faint);font:12px var(--mono)}
+  .scanner-options label{display:flex;align-items:center;gap:7px}.scanner-options input{accent-color:var(--safe)}
+  .scanner-actions{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:12px;flex-wrap:wrap;min-width:0}
+  .scanner-status{font:12px var(--mono);color:var(--text-dim);min-height:16px;overflow-wrap:anywhere}.scanner-status.err{color:var(--critical)}.scanner-status.ok{color:var(--safe)}
+  .btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important}.spinner{display:inline-block;width:13px;height:13px;border-radius:50%;border:2px solid rgba(233,237,239,.25);border-top-color:var(--text);animation:spin .7s linear infinite;margin-right:2px}@keyframes spin{to{transform:rotate(360deg)}}
+  .results{border-top:1px solid var(--line);min-width:0}.results-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line);background:var(--surface-2);min-width:0}.results-head>div{min-width:0}.results-head .title{font:13px var(--mono);color:var(--text-dim);word-break:break-all}.result-sub{display:block;color:var(--text-faint);font:10.5px var(--mono);margin-top:3px}.results-head .score{font:12px var(--mono);color:var(--critical);white-space:nowrap}.results-head .score.clean{color:var(--safe)}
+  .result-tools{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line-soft)}
+  .filter-pills,.result-actions{display:flex;gap:6px;flex-wrap:wrap}.filter-pills button,.result-actions button{font:11px var(--mono);color:var(--text-faint);background:transparent;border:1px solid var(--line);border-radius:5px;padding:5px 8px;cursor:pointer}.filter-pills button.active,.filter-pills button:hover,.result-actions button:hover{color:var(--text);border-color:var(--text-faint)}
+  .finding{display:grid;grid-template-columns:82px minmax(0,1fr) auto;gap:14px;align-items:center;padding:15px 18px;border-bottom:1px solid var(--line-soft);min-width:0}.finding:last-child{border-bottom:0}.sev{font:700 10px var(--mono);letter-spacing:.05em;display:flex;align-items:center;gap:7px;text-transform:uppercase}.sev .dot{width:7px;height:7px;border-radius:50%}.sev.critical{color:var(--critical)}.sev.critical .dot{background:var(--critical)}.sev.warning{color:var(--warn)}.sev.warning .dot{background:var(--warn)}.sev.info{color:var(--text-dim)}.sev.info .dot{background:var(--text-faint)}.finding-desc{min-width:0}.finding-desc .loc{font:11px var(--mono);color:var(--text-faint);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.finding-desc .txt{font-size:13.5px;color:var(--text);overflow-wrap:anywhere}.finding-link{font:11px var(--mono);color:var(--text-dim);max-width:250px;text-align:right}.finding-link button{color:inherit;background:none;border:0;cursor:pointer;font:inherit}.finding-message{display:none;margin-top:8px;padding:9px;border:1px solid var(--line-soft);border-radius:6px;background:var(--bg);color:var(--text-dim);font:11.5px/1.5 var(--mono)}.finding.expanded .finding-message{display:block}.results-empty{padding:34px 20px;text-align:center;color:var(--text-faint);font-size:14px}.results-empty b{color:var(--safe);display:block;font-size:15px;margin-bottom:4px}
+
+  /* ---------- LOGOS ---------- */
+  .logos-section{ padding: 46px 0; border-bottom: 1px solid var(--line-soft); }
+  .logos-label{ font-family: var(--mono); font-size: 12px; color: var(--text-faint); letter-spacing:.08em; margin-bottom:22px; text-transform:uppercase; }
+  .logos-row{
+    display:flex; flex-wrap:wrap; gap: 34px 44px; align-items:center;
+  }
+  .logos-row span{
+    font-family: var(--mono); font-weight:600; font-size: 15px; color: var(--text-faint);
+    letter-spacing:.02em;
+  }
+
+  /* ---------- PROBLEM CARDS ---------- */
+  .cards{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card{
+    background: var(--surface); border:1px solid var(--line); border-radius: 12px; padding: 24px;
+    display:flex; flex-direction:column; gap:16px;
+  }
+  .card-tag{
+    align-self:flex-start; font-family: var(--mono); font-size: 11px; font-weight:600;
+    letter-spacing:.06em; text-transform:uppercase; padding: 4px 8px; border-radius:4px;
+  }
+  .card-tag.critical{ color: var(--critical); background: var(--critical-dim); }
+  .card-tag.warn{ color: var(--warn); background: var(--warn-dim); }
+  .card h3{ font-size: 17px; font-weight:700; }
+  .card p{ font-size: 14px; color: var(--text-dim); margin:0; }
+  .snippet{
+    background: var(--bg); border:1px solid var(--line-soft); border-radius:8px;
+    padding: 12px 14px; font-family: var(--mono); font-size: 12px; color: var(--text-dim);
+    overflow-x:auto; white-space:pre;
+  }
+  .snippet .bad{ color: var(--critical); }
+
+  /* ---------- HOW IT WORKS ---------- */
+  .steps{ display:grid; grid-template-columns: repeat(3,1fr); gap: 0; position:relative; }
+  .steps::before{
+    content:''; position:absolute; top:22px; left: 8%; right:8%; height:1px; background: var(--line);
+  }
+  .step{ position:relative; padding: 0 20px; }
+  .step:first-child{ padding-left:0; }
+  .step:last-child{ padding-right:0; }
+  .step-num{
+    font-family: var(--mono); font-weight:700; font-size: 13px; color: var(--bg);
+    background: var(--safe); width: 44px; height:44px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; margin-bottom: 22px; position:relative; z-index:1;
+  }
+  .step h3{ font-size: 17px; font-weight:700; margin-bottom:10px; }
+  .step p{ font-size: 14.5px; color: var(--text-dim); margin:0; }
+
+  /* ---------- DASHBOARD MOCK ---------- */
+  .panel{
+    background: var(--surface); border:1px solid var(--line); border-radius: 12px; overflow:hidden;
+  }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between; padding: 16px 20px;
+    border-bottom:1px solid var(--line); background: var(--surface-2);
+  }
+  .panel-head .title{ font-family: var(--mono); font-size: 13px; color: var(--text-dim); }
+  .panel-head .score{ font-family: var(--mono); font-size: 12.5px; color: var(--critical); }
+  .finding{
+    display:grid; grid-template-columns: 90px 1fr auto; gap: 16px; align-items:center;
+    padding: 16px 20px; border-bottom: 1px solid var(--line-soft);
+  }
+  .finding:last-child{ border-bottom:none; }
+  .sev{
+    font-family: var(--mono); font-size: 11px; font-weight:700; letter-spacing:.05em;
+    display:flex; align-items:center; gap:7px; text-transform:uppercase;
+  }
+  .sev .dot{ width:7px; height:7px; border-radius:50%; }
+  .sev.critical{ color: var(--critical); } .sev.critical .dot{ background: var(--critical); }
+  .sev.warn{ color: var(--warn); } .sev.warn .dot{ background: var(--warn); }
+  .sev.info{ color: var(--text-dim); } .sev.info .dot{ background: var(--text-faint); }
+  .finding-desc .loc{ font-family: var(--mono); font-size: 12px; color: var(--text-faint); margin-bottom:3px; }
+  .finding-desc .txt{ font-size: 14px; color: var(--text); }
+  .finding-link{ font-family: var(--mono); font-size: 12.5px; color: var(--text-dim); white-space:nowrap; }
+
+  /* ---------- CTA ---------- */
+  .cta-section{ padding: 100px 0; text-align:center; border-bottom:none; }
+  .cta-section h2{ font-size: clamp(28px,4vw,42px); font-weight:800; max-width: 18ch; margin: 0 auto 16px; }
+  .cta-section p{ color: var(--text-dim); font-size: 16px; max-width: 46ch; margin: 0 auto; }
+  .cta-form{ display:flex; gap:10px; max-width: 440px; margin: 34px auto 0; }
+  .cta-form input[type=email]{
+    flex:1; min-width:0; background: var(--surface); border:1px solid var(--line);
+    color: var(--text); border-radius:7px; padding: 13px 15px; font-size: 14.5px; font-family: var(--sans);
+  }
+
+  footer{ padding: 34px 0; }
+  .foot-inner{ display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; }
+  .foot-inner .logo{ font-size:14px; }
+  footer p{ margin:0; font-size: 13px; color: var(--text-faint); }
+
+  .nav-inner,.wrap{min-width:0}
+  .nav-links,.nav-links a,.btn{min-width:0}
+  @media (max-width: 900px){
+    .hero{ grid-template-columns: 1fr; padding-top: 36px; gap:28px; }
+    .hero h1{max-width:18ch;}
+    .cards{ grid-template-columns: 1fr; }
+    .steps{ grid-template-columns: 1fr; gap: 34px; }
+    .steps::before{ display:none; }
+    .step{ padding: 0; }
+
+    .nav-toggle{ display:flex; }
+    .nav-links{
+      display:flex; flex-direction:column; align-items:flex-start; gap:0;
+      position:absolute; top:100%; left:0; right:0;
+      background: var(--surface); border-bottom:1px solid var(--line-soft);
+      max-height:0; overflow:hidden; transition: max-height .25s ease;
+    }
+    .nav.open .nav-links{ max-height:260px; }
+    .nav-links a{ width:100%; padding: 14px 28px; border-bottom:1px solid var(--line-soft); font-size:15px; }
+    .nav .btn-primary{ display:none; }
+    .nav.open .btn-primary{ display:none; }
+    .nav-links .nav-cta{ display:block; width:100%; padding:14px 28px; text-align:left; color:var(--text); font-weight:600; }
+
+    .finding{ grid-template-columns: 1fr; row-gap:8px; }
+    .finding-link{ display:none; }
+    .section{ padding: 64px 0; }
+    .wrap{ padding: 0 20px; }
+    .nav-inner{ padding: 14px 20px; }
+    .logos-row{ gap: 22px 28px; }
+  }
+  @media (max-width: 520px){
+    .hero{padding:28px 0 42px}.hero h1{font-size:clamp(30px,9vw,38px)}
+    .scanner-topline{align-items:flex-start}.scanner-engine{display:none}
+    .scanner-body{padding:12px}.scanner-tabs{margin:0 -12px}
+    .scanner-actions .btn{width:100%;justify-content:center}.scanner-status{width:100%}
+    .finding{grid-template-columns:1fr;gap:7px}.finding-link{max-width:none;text-align:left}.result-tools{align-items:flex-start}
+    .hero-form, .cta-form{ flex-direction:column; }
+    .hero-form input[type=email], .cta-form input[type=email]{ font-size:16px; }
+    .hero h1{ font-size: clamp(28px, 8vw, 38px); }
+    .flag{ font-size: 11px; flex-wrap:wrap; }
+    .foot-inner{ flex-direction:column; align-items:flex-start; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav" id="siteNav">
+    <div class="nav-inner">
+      <a href="#top" class="logo"><span class="logo-mark"></span>redline</a>
+      <div class="nav-links" id="navLinks">
+        <a href="#problem">Why it matters</a>
+        <a href="#how">How it works</a>
+        <a href="#dashboard">Product</a>
+        <a href="#cta" class="nav-cta">Join the beta →</a>
+      </div>
+      <a href="#cta" class="btn btn-primary">Join the beta</a>
+      <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks"><span></span></button>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap">
+      <section class="hero" id="scannerHero">
+        <div class="hero-copy">
+          <div class="eyebrow">Security for vibe-coded apps</div>
+          <h1>Find the bug <em>before your users do.</em></h1>
+          <p class="lede">Scan AI-generated code for secrets, injection, broken access control, SSRF, path traversal and other security issues — with the real scanner, right here.</p>
+          <div class="hero-points">
+            <span>✓ No signup</span><span>✓ Public GitHub repos</span><span>✓ Local file upload</span>
+          </div>
+        </div>
+
+        <div class="hero-scanner">
+          <div class="scanner" id="scanner">
+            <div class="scanner-topline"><span class="scanner-kicker">LIVE STATIC ANALYSIS</span><span class="scanner-engine">Redline engine · rules + data-flow heuristics</span></div>
+            <div class="scanner-tabs" role="tablist" aria-label="Scan source">
+              <button class="scanner-tab active" id="tabCode" type="button" role="tab" aria-selected="true">Paste code</button>
+              <button class="scanner-tab" id="tabFile" type="button" role="tab" aria-selected="false">Upload file</button>
+              <button class="scanner-tab" id="tabRepo" type="button" role="tab" aria-selected="false">GitHub repo</button>
+            </div>
+            <div class="scanner-body">
+              <div class="scanner-pane active" id="paneCode">
+                <textarea id="codeInput" spellcheck="false" placeholder="Paste a route, component, server file, or API handler…">const supabase = createClient(url, 'sk_live_51Hc9FAKEKEYFORDEMO000000')
+
+app.post('/checkout', async (req, res) => {
+  const { user_id, amount } = req.body
+  await supabase.from('orders').insert({ user_id, amount })
+  res.send('ok')
+})</textarea>
+                <div class="scanner-hint">Code is sent only to your scan endpoint and is not stored by this page.</div>
+              </div>
+              <div class="scanner-pane" id="paneFile">
+                <label class="dropzone" id="dropzone" for="fileInput">
+                  <input id="fileInput" type="file" accept=".js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.java,.go,.php,.rb,.rs,.sql,.env,.txt,.json,.yaml,.yml,.html,.css" />
+                  <span class="drop-icon">↑</span>
+                  <strong id="fileName">Choose a source file</strong>
+                  <span>or drag and drop it here · up to 120 KB</span>
+                </label>
+                <div class="file-meta" id="fileMeta"></div>
+              </div>
+              <div class="scanner-pane" id="paneRepo">
+                <input type="url" id="repoInput" placeholder="https://github.com/owner/repo" autocomplete="off" />
+                <div class="scanner-hint">Public repos only. The API scans up to 25 JS/TS/Python files.</div>
+              </div>
+              <div class="scanner-options">
+                <label><input type="checkbox" id="deepMode" checked /> Deep heuristics</label>
+                <label><input type="checkbox" id="showInfo" checked /> Include informational findings</label>
+              </div>
+              <div class="scanner-actions">
+                <button class="btn btn-primary" id="scanBtn" type="button">Run security scan <span>↗</span></button>
+                <span class="scanner-status" id="scanStatus">Ready to scan</span>
+              </div>
+            </div>
+            <div class="results" id="results" style="display:none;">
+              <div class="results-head">
+                <div><span class="title" id="resultsTitle">—</span><span class="result-sub" id="resultsSub"></span></div>
+                <span class="score" id="resultsScore">—</span>
+              </div>
+              <div class="result-tools">
+                <div class="filter-pills" id="filterPills"><button type="button" data-filter="all" class="active">All</button><button type="button" data-filter="critical">Critical</button><button type="button" data-filter="warning">Warning</button><button type="button" data-filter="info">Info</button></div>
+                <div class="result-actions"><button type="button" id="copyReport">Copy report</button><button type="button" id="downloadReport">JSON</button><button type="button" id="clearResults">Clear</button></div>
+              </div>
+              <div id="resultsBody"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="logos-section">
+      <div class="wrap">
+        <div class="logos-label">Scans apps built with</div>
+        <div class="logos-row">
+          <span>Lovable</span><span>Bolt.new</span><span>Replit</span><span>v0</span><span>Cursor</span><span>Windsurf</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="section" id="problem">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">The pattern</div>
+          <h2>AI builders are great at features. They skip the parts that don't demo well.</h2>
+          <p>These three show up in almost every vibe-coded app we've looked at — because they're invisible until someone goes looking.</p>
+        </div>
+        <div class="cards">
+          <div class="card">
+            <span class="card-tag critical">Critical</span>
+            <h3>Secrets in the client bundle</h3>
+            <p>Live API keys and service-role tokens get pasted straight into frontend code, because that's the fastest way to make the demo work.</p>
+            <div class="snippet">const supabase = createClient(
+  url,
+  <span class="bad">"sk_live_51Hc9...FULL_KEY"</span>
+)</div>
+          </div>
+          <div class="card">
+            <span class="card-tag warn">Warning</span>
+            <h3>No row-level auth</h3>
+            <p>Tables get created and queried directly from the client. Any signed-in user can read, and often write, every other user's rows.</p>
+            <div class="snippet">.from('orders')
+  .select('*')
+  <span class="bad">// no policy, no owner check</span></div>
+          </div>
+          <div class="card">
+            <span class="card-tag warn">Warning</span>
+            <h3>Trusting the request</h3>
+            <p>Prices, quantities, and permissions get read straight off <code>req.body</code> instead of recomputed on the server.</p>
+            <div class="snippet">const { amount } = req.body
+<span class="bad">await charge(user, amount)</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="how">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">How it works</div>
+          <h2>Three steps. No rewrite required.</h2>
+          <p>Redline reads the code, not the prompt history — so it works whichever builder you used, and whatever you switch to next.</p>
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">01</div>
+            <h3>Connect</h3>
+            <p>Point Redline at your GitHub repo or paste the live URL your builder deployed. Nothing to install, no build step to change.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">02</div>
+            <h3>Scan</h3>
+            <p>Redline reads what was actually generated and flags exploitable issues — not lint warnings or style nitpicks.</p>
+          </div>
+          <div class="step">
+            <div class="step-num">03</div>
+            <h3>Fix</h3>
+            <p>Every finding comes with a plain-English explanation and a ready-to-paste patch you can hand straight back to your AI builder.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-section" id="cta">
+      <div class="wrap">
+        <div class="eyebrow" style="justify-content:center;">Private beta</div>
+        <h2 style="margin-top:16px;">Ship fast. Just don't ship the vulnerability.</h2>
+        <p>We're onboarding a small group of founders shipping AI-generated apps. Get your first scan free.</p>
+        <form class="cta-form" id="ctaForm" novalidate>
+          <input type="email" id="ctaEmail" placeholder="you@yourstartup.com" autocomplete="email" required />
+          <button type="submit" class="btn btn-primary">Get early access</button>
+        </form>
+        <div class="form-msg" id="ctaMsg" style="justify-content:center; display:flex;"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot-inner">
+      <a href="#top" class="logo"><span class="logo-mark"></span>redline</a>
+      <p>Security review for code that shipped itself.</p>
+      <p>© 2026 Redline. Prototype build.</p>
+    </div>
+  </footer>
+
+<script>
+(function(){
+  var navEl=document.getElementById('siteNav'), navToggle=document.getElementById('navToggle'), navLinks=document.getElementById('navLinks');
+  if(navToggle){navToggle.addEventListener('click',function(){var open=navEl.classList.toggle('open');navToggle.setAttribute('aria-expanded',open?'true':'false');});navLinks.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){navEl.classList.remove('open');navToggle.setAttribute('aria-expanded','false');});});}
+
+  function wireForm(formId,emailId,msgId){var form=document.getElementById(formId);if(!form)return;form.addEventListener('submit',function(e){e.preventDefault();var email=document.getElementById(emailId).value.trim(),msg=document.getElementById(msgId);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='That doesn\'t look like a valid email — try again.';msg.className='form-msg err';return;}msg.textContent='You\'re on the list — we\'ll reach out before the beta opens.';msg.className='form-msg ok';form.reset();});}
+  wireForm('ctaForm','ctaEmail','ctaMsg');
+
+  var tabCode=document.getElementById('tabCode'),tabFile=document.getElementById('tabFile'),tabRepo=document.getElementById('tabRepo');
+  var panes={code:document.getElementById('paneCode'),file:document.getElementById('paneFile'),repo:document.getElementById('paneRepo')};
+  var mode='code', selectedFile=null, lastData=null, activeFilter='all';
+  function setTab(which){mode=which;[tabCode,tabFile,tabRepo].forEach(function(b){var active=b.id==='tab'+which.charAt(0).toUpperCase()+which.slice(1);b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');});Object.keys(panes).forEach(function(k){panes[k].classList.toggle('active',k===which);});}
+  tabCode.onclick=function(){setTab('code')};tabFile.onclick=function(){setTab('file')};tabRepo.onclick=function(){setTab('repo')};
+
+  var fileInput=document.getElementById('fileInput'),dropzone=document.getElementById('dropzone'),fileName=document.getElementById('fileName'),fileMeta=document.getElementById('fileMeta');
+  function acceptFile(file){if(!file)return;if(file.size>120000){fileMeta.textContent='File is too large. Maximum is 120 KB.';fileMeta.style.color='var(--critical)';selectedFile=null;return;}selectedFile=file;fileName.textContent=file.name;fileMeta.textContent=(file.size/1024).toFixed(1)+' KB · '+(file.type||'text source')+' · ready to scan';fileMeta.style.color='var(--safe)';setTab('file');}
+  fileInput.addEventListener('change',function(){acceptFile(this.files[0])});
+  ['dragenter','dragover'].forEach(function(ev){dropzone.addEventListener(ev,function(e){e.preventDefault();dropzone.classList.add('dragover')})});['dragleave','drop'].forEach(function(ev){dropzone.addEventListener(ev,function(e){e.preventDefault();dropzone.classList.remove('dragover')})});dropzone.addEventListener('drop',function(e){acceptFile(e.dataTransfer.files[0])});
+
+  var scanBtn=document.getElementById('scanBtn'),statusEl=document.getElementById('scanStatus'),results=document.getElementById('results'),resultsTitle=document.getElementById('resultsTitle'),resultsSub=document.getElementById('resultsSub'),resultsScore=document.getElementById('resultsScore'),resultsBody=document.getElementById('resultsBody');
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function sevLabel(s){return s==='critical'?'Critical':s==='warning'?'Warning':'Info'}
+  function renderResults(data,target){lastData=data;results.style.display='block';resultsTitle.textContent='scan · '+target;var s=data.summary||{critical:0,warning:0,info:0},total=s.critical+s.warning+s.info;resultsSub.textContent=(data.filesScanned||1)+' file(s) · '+total+' finding(s)';resultsScore.classList.toggle('clean',total===0);resultsScore.textContent=total?'Risk: '+(s.critical?'critical':s.warning?'warning':'info'):'No issues found';if(!total){resultsBody.innerHTML='<div class="results-empty"><b>Clean scan.</b>No pattern matches from the current rule set.</div>';return;}drawFindings();}
+  function drawFindings(){var findings=(lastData&&lastData.findings)||[];var showInfo=document.getElementById('showInfo').checked;var filtered=findings.filter(function(f){return activeFilter==='all'||f.severity===activeFilter}).filter(function(f){return showInfo||f.severity!=='info'});if(!filtered.length){resultsBody.innerHTML='<div class="results-empty">No findings match this filter.</div>';return;}resultsBody.innerHTML=filtered.map(function(f,i){return '<div class="finding" data-index="'+i+'"><span class="sev '+esc(f.severity)+'"><span class="dot"></span>'+sevLabel(f.severity)+'</span><div class="finding-desc"><div class="loc">'+esc(f.file)+':'+esc(f.line)+'</div><div class="txt">'+esc(f.title)+'</div><div class="finding-message">'+esc(f.message)+'<br><br><span>Snippet: '+esc(f.snippet||'—')+'</span></div></div><span class="finding-link"><button type="button" data-expand="'+i+'">details ↕</button></span></div>'}).join('');resultsBody.querySelectorAll('[data-expand]').forEach(function(b){b.onclick=function(){b.closest('.finding').classList.toggle('expanded')}});}
+  document.getElementById('filterPills').querySelectorAll('button').forEach(function(b){b.onclick=function(){activeFilter=b.dataset.filter;document.getElementById('filterPills').querySelectorAll('button').forEach(function(x){x.classList.toggle('active',x===b)});drawFindings();}});document.getElementById('showInfo').onchange=drawFindings;
+
+  async function getValue(){if(mode==='code')return {value:document.getElementById('codeInput').value.trim(),label:'pasted code'};if(mode==='repo')return {value:document.getElementById('repoInput').value.trim(),label:document.getElementById('repoInput').value.trim()};if(!selectedFile)throw new Error('Choose a source file first.');return {value:await selectedFile.text(),label:selectedFile.name};}
+  async function runScan(){var v;try{v=await getValue();}catch(e){statusEl.textContent=e.message;statusEl.className='scanner-status err';return;}if(!v.value){statusEl.textContent=mode==='repo'?'Enter a GitHub repo URL first.':'Add some code first.';statusEl.className='scanner-status err';return;}scanBtn.disabled=true;statusEl.className='scanner-status';statusEl.innerHTML='<span class="spinner"></span>'+(mode==='repo'?'Fetching repo files…':'Scanning…');results.style.display='none';try{var payload={mode:mode==='file'?'code':mode,value:v.value};var res=await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});var data=await res.json();if(!res.ok)throw new Error(data.error||'Scan failed.');statusEl.textContent='Done · '+(data.filesScanned||1)+' file(s) scanned';statusEl.className='scanner-status ok';renderResults(data,data.target||v.label);results.scrollIntoView({behavior:'smooth',block:'nearest'});}catch(err){statusEl.textContent=err.message||'Network error — check /api/scan.';statusEl.className='scanner-status err';}finally{scanBtn.disabled=false;}}
+  scanBtn.onclick=runScan;
+
+  document.getElementById('copyReport').onclick=async function(){if(!lastData)return;var text=JSON.stringify(lastData,null,2);try{await navigator.clipboard.writeText(text);statusEl.textContent='Report copied to clipboard';statusEl.className='scanner-status ok';}catch(e){statusEl.textContent='Clipboard access unavailable';statusEl.className='scanner-status err';}};
+  document.getElementById('downloadReport').onclick=function(){if(!lastData)return;var blob=new Blob([JSON.stringify(lastData,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='redline-scan.json';a.click();URL.revokeObjectURL(a.href);};
+  document.getElementById('clearResults').onclick=function(){results.style.display='none';lastData=null;statusEl.textContent='Ready to scan';statusEl.className='scanner-status';};
+
+  // Keyboard shortcut: Ctrl/Cmd + Enter runs the scan from the code editor.
+  document.getElementById('codeInput').addEventListener('keydown',function(e){if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();runScan();}});
+})();
+</script>
+</body>
+</html>
