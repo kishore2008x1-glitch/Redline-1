@@ -1,63 +1,70 @@
 # Redline — working prototype
 
-A real (not scripted) full-stack prototype: static frontend + a Vercel
-serverless function that actually scans code. No paid API, no API key.
+A real, free, full-stack prototype: static SPA frontend + one self-contained
+Vercel serverless function. No paid API, no API key, no framework build step.
 
-## How it works
+## Pages (client-side hash routing, single index.html)
 
-- **Frontend** (`index.html`) — marketing page plus a live scanner UI. You can
-  paste code directly, or give it a public GitHub repo URL.
-- **Backend** (`api/scan.js`) — one self-contained Vercel serverless function
-  (no other files to go missing on deploy). It:
-  - For pasted code: runs the rule engine on it directly.
-  - For a repo URL: calls GitHub's free public REST API (no auth needed,
-    60 requests/hour per IP) to list the repo's file tree, pulls up to 25
-    JS/TS/Python files (~450KB total budget), and scans each one.
-  - Rule engine: pure regex/pattern matching, zero external calls. Detects
-    hardcoded secrets (Stripe, AWS, Google, Slack, private keys, JWT-style
-    service keys, generic secret assignments), CORS wildcards,
-    `eval`/`new Function`, string-interpolated SQL, sensitive routes with no
-    nearby auth check, client-trusted price/role/amount values, missing rate
-    limiting on webhook routes, and committed `.env` files.
-  - The whole handler is wrapped so it always returns valid JSON, even on an
-    unexpected error — it should never surface Vercel's generic crash page.
+- `#/` — marketing home, with a live "what it checks for" chip list
+- `#/scan` — the actual scanner: paste code, point at a public GitHub repo,
+  or upload/drag files. Real results, grade badge (A–F), severity filters,
+  copy/download report, and a local (localStorage) recent-scans history.
+- `#/rules` — all 21 detection rules in plain English, generated from the
+  same list the scan page uses to render its "what it checks for" chips.
+- `#/roadmap` — honest framing of what this prototype is (pattern matching)
+  vs. what a real product needs next (verification, fixes, regression checks).
 
-This is genuinely free to run: GitHub's public API needs no key, and
-Vercel's Hobby tier covers a static site + one serverless function.
+## Backend (`api/scan.js`)
+
+One self-contained Vercel serverless function — no cross-file `require`,
+so nothing can go missing between your machine and Vercel's build. It:
+
+- Runs 21 pattern-based rules (secrets, SQL injection incl. Python and
+  indirect forms, XSS incl. Flask template strings, command injection, path
+  traversal, SSRF, missing auth incl. Python routes, IDOR, mass assignment,
+  trusting client input, insecure deserialization, weak crypto/disabled TLS,
+  debug mode, CORS wildcard, dynamic code execution, no rate limiting,
+  committed `.env` files).
+- For a GitHub URL: pulls the repo's file tree via GitHub's free public API
+  (no key, 60 req/hr/IP) and scans up to 25 files (~450KB budget).
+- For uploaded files: scans whatever the browser read client-side and sent
+  up (25 files / ~600KB budget).
+- Every branch is wrapped so it always returns valid JSON — even an
+  unexpected error returns `{"error": "..."}` instead of Vercel's crash page.
 
 ## Deploy
 
 ```bash
-npm i -g vercel   # if you don't have it
+npm i -g vercel
 cd redline
-vercel             # first deploy, follow prompts
-vercel --prod       # promote to production
+vercel --prod
 ```
 
-No environment variables required. Make sure you deploy the **whole
-`redline/` folder** (index.html, package.json, and api/scan.js together) —
-running `vercel --prod` from inside that folder, not dragging a single file
-into the dashboard, is what keeps the structure intact.
+No environment variables required. Deploy the **whole folder** (`index.html`,
+`package.json`, `api/scan.js` together) — the CLI run from inside `redline/`
+is what keeps the structure intact; don't drag a single file into the
+dashboard.
 
-## Troubleshooting
+## Verified locally before shipping
 
-- **`/api/scan` returns Vercel's generic 404 page** → the function never
-  deployed. Check the Vercel dashboard → your deployment → **Functions** tab;
-  `api/scan.js` should be listed. If it's missing, redeploy the folder with
-  the CLI as above.
-- **`/api/scan` returns a "Serverless Function has crashed" page (500,
-  `FUNCTION_INVOCATION_FAILED`)** → check dashboard → deployment → **Logs**
-  for the real stack trace. As of this version there's no cross-file
-  `require()`, so a missing-file issue shouldn't be the cause anymore — if
-  you still see this, the logs will show exactly what threw.
+- `node --check api/scan.js` — no syntax errors
+- Full mock request/response run through the handler for `code`, `files`,
+  and `repo` modes, plus edge cases (GET, missing body, malformed JSON, bad
+  repo URL) — every path returns clean JSON, nothing throws
+- Sample vulnerable snippets for XSS, command injection, path traversal, and
+  Python deserialization each correctly triggered their rule
+- Clean, properly-secured code produces zero findings (no false positives
+  on the negative test case)
+- Every DOM id referenced by the frontend script exists in the HTML; the
+  inline `<script>` block passes `node --check`; all major tags balance
 
 ## Known limits (prototype, not production)
 
-- Pattern matching means false positives/negatives — it's a heuristic
-  engine, not a real SAST tool.
-- GitHub's unauthenticated rate limit (60 req/hr/IP) means heavy repo-mode
-  traffic will start failing until it resets; the API returns a clear
-  error in that case.
+- Pattern matching, not a real SAST engine — it favors recall, so treat
+  findings as candidates to review, not proven vulnerabilities.
+- GitHub's unauthenticated rate limit (60 req/hr/IP) will start failing
+  under heavy repo-mode traffic; the API returns a clear error when this
+  happens.
 - Only public repos can be scanned (no OAuth flow in this prototype).
-- Large repos are capped at 25 files / ~450KB scanned, prioritizing files
-  whose names suggest routes, auth, payments, or env config.
+- Scan history is stored in the visitor's own browser (localStorage) —
+  nothing is persisted server-side, and nothing is shared between devices.
