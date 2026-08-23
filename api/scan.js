@@ -924,9 +924,10 @@ module.exports = async function handler(req, res) {
 
 
     if (
-      !value ||
+      mode !== 'files' &&
+      (!value ||
       typeof value !== 'string' ||
-      !value.trim()
+      !value.trim())
     ) {
       res.status(400).json({
         error:
@@ -968,6 +969,48 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+
+    // ==========================================================
+    // FILES MODE (client-uploaded files)
+    // ==========================================================
+
+    if (mode === 'files') {
+      let files = body.files;
+      if (!Array.isArray(files)) files = [];
+      if (files.length === 0) {
+        res.status(400).json({ error: 'No files to scan — choose at least one file.' });
+        return;
+      }
+
+      const MAX_UPLOAD_FILES = 25;
+      const MAX_UPLOAD_TOTAL_BYTES = 600000;
+      const MAX_UPLOAD_FILE_BYTES = 150000;
+
+      let findings = [];
+      let scanned = 0;
+      let totalBytes = 0;
+
+      for (const f of files) {
+        if (scanned >= MAX_UPLOAD_FILES) break;
+        if (!f || typeof f.content !== 'string' || !f.content.trim()) continue;
+        const name = typeof f.name === 'string' && f.name.trim() ? f.name.trim() : 'uploaded-file';
+        const content = f.content.slice(0, MAX_UPLOAD_FILE_BYTES);
+        if (totalBytes + content.length > MAX_UPLOAD_TOTAL_BYTES) continue;
+        totalBytes += content.length;
+        scanned++;
+        findings = findings.concat(scanText(name, content));
+      }
+
+      findings.sort((a, b) => severityRank[a.severity] - severityRank[b.severity]);
+
+      res.status(200).json({
+        target: scanned === 1 ? (files[0] && files[0].name) || 'uploaded file' : scanned + ' uploaded files',
+        filesScanned: scanned,
+        findings,
+        summary: summarize(findings),
+      });
+      return;
+    }
 
     // ==========================================================
     // REPOSITORY MODE
