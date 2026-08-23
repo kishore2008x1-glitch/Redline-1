@@ -1,9 +1,0 @@
-{
-  "name": "redline-prototype",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Redline — security scanner prototype for AI-generated (vibe-coded) apps.",
-  "engines": {
-    "node": ">=18"
-  }
-}
