@@ -247,32 +247,44 @@ Do not use markdown headers.`;
     // The current Gemini documentation supports this request structure.
     // -------------------------------------------------------------------------
 
-     const geminiRes = await callGemini(GEMINI_URL, {
-      method: 'POST',const
+     let geminiRes;
+let lastError = '';
 
-      headers: {
-        'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey
-      },
+for (const model of GEMINI_MODELS) {
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-      body: JSON.stringify({
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-
-        generationConfig: {
-          maxOutputTokens: 600,
-          temperature: 0.2
+  geminiRes = await callGemini(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: prompt }]
         }
-      })
-    });
+      ],
+      generationConfig: {
+        maxOutputTokens: 600,
+        temperature: 0.2
+      }
+    })
+  });
+
+  if (geminiRes.ok) {
+    break;
+  }
+
+  lastError = await readGeminiError(geminiRes);
+
+  // Only fall back for temporary capacity problems.
+  if (geminiRes.status !== 503) {
+    break;
+  }
+}
 
 
     // -------------------------------------------------------------------------
