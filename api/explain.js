@@ -245,8 +245,8 @@ Do not use markdown headers.`;
     // The current Gemini documentation supports this request structure.
     // -------------------------------------------------------------------------
 
-    const geminiRes = await fetch(GEMINI_URL, {
-      method: 'POST',
+     const geminiRes = await callGemini(GEMINI_URL, {
+      method: 'POST',const
 
       headers: {
         'Content-Type': 'application/json',
