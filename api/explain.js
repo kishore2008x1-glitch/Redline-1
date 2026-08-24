@@ -1,116 +1,412 @@
 // api/explain.js
-// On-demand AI fix suggestions for a single finding, via Gemini's free-tier API.
-// SECURITY: the API key is read from process.env.GEMINI_API_KEY (a Vercel
-// environment variable) — it is never present in this file, never sent to
-// the browser, and never logged. Set it with:
-//   vercel env add GEMINI_API_KEY
-// or via the Vercel dashboard → Project → Settings → Environment Variables.
-// If it isn't set, this endpoint returns a clear error instead of crashing,
-// and the rest of the scanner keeps working with zero AI involvement.
+// On-demand AI fix suggestions for a single finding, via Gemini API.
+//
+// SECURITY:
+// - GEMINI_API_KEY is read only from process.env.
+// - The key is never sent to the browser.
+// - The key is never logged.
+// - Set GEMINI_API_KEY in Vercel Environment Variables.
+//
+// Optional:
+// GEMINI_MODEL=gemini-3.7-flash
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const GEMINI_MODEL =
+  process.env.GEMINI_MODEL || 'gemini-3.7-flash';
 
-const MAX_SNIPPET_CHARS = 2000; // keep prompts small — this is a free-tier key
-const MAX_REQUESTS_PER_MIN = 20; // crude in-memory throttle, resets on cold start
+const GEMINI_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const MAX_SNIPPET_CHARS = 2000;
+const MAX_REQUESTS_PER_MIN = 20;
+
+
+// -----------------------------------------------------------------------------
+// Simple in-memory rate limiter
+// -----------------------------------------------------------------------------
 
 let windowStart = Date.now();
 let windowCount = 0;
+
 function rateLimited() {
   const now = Date.now();
-  if (now - windowStart > 60000) { windowStart = now; windowCount = 0; }
+
+  if (now - windowStart > 60000) {
+    windowStart = now;
+    windowCount = 0;
+  }
+
   windowCount++;
+
   return windowCount > MAX_REQUESTS_PER_MIN;
 }
 
+
+// -----------------------------------------------------------------------------
+// Safe error extraction
+// -----------------------------------------------------------------------------
+
+async function readGeminiError(response) {
+  try {
+    const body = await response.json();
+
+    return (
+      body?.error?.message ||
+      body?.error?.status ||
+      JSON.stringify(body)
+    );
+  } catch (e) {
+    try {
+      return await response.text();
+    } catch (err) {
+      return `HTTP ${response.status}`;
+    }
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// API handler
+// -----------------------------------------------------------------------------
+
 module.exports = async function handler(req, res) {
   try {
+    // CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
-    if (req.method !== 'POST') { res.status(405).json({ error: 'Use POST' }); return; }
+    res.setHeader(
+      'Access-Control-Allow-Methods',
+      'POST, OPTIONS'
+    );
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type'
+    );
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      res.status(501).json({
-        error: 'AI fix suggestions aren\'t configured on this deployment yet. Set GEMINI_API_KEY as a Vercel environment variable (never in client code) and redeploy.',
+    // Preflight
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+
+    // Only POST
+    if (req.method !== 'POST') {
+      res.status(405).json({
+        error: 'Use POST'
       });
       return;
     }
 
-    if (rateLimited()) {
-      res.status(429).json({ error: 'AI suggestions are rate-limited to protect the free-tier quota. Try again in a minute.' });
+
+    // -------------------------------------------------------------------------
+    // Gemini API key
+    // -------------------------------------------------------------------------
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      res.status(501).json({
+        error:
+          'Gemini AI is not configured on this deployment. ' +
+          'Set GEMINI_API_KEY in your Vercel Environment Variables ' +
+          'and redeploy.'
+      });
+
       return;
     }
+
+
+    // -------------------------------------------------------------------------
+    // Rate limiting
+    // -------------------------------------------------------------------------
+
+    if (rateLimited()) {
+      res.status(429).json({
+        error:
+          'AI suggestions are temporarily rate-limited. ' +
+          'Please try again in a minute.'
+      });
+
+      return;
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Parse request body
+    // -------------------------------------------------------------------------
 
     let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
-    }
-    if (!body || typeof body !== 'object') body = {};
 
-    const { title, message, snippet, file, ruleId } = body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch (e) {
+        body = {};
+      }
+    }
+
+    if (!body || typeof body !== 'object') {
+      body = {};
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Extract finding information
+    // -------------------------------------------------------------------------
+
+    const {
+      title,
+      message,
+      snippet,
+      file,
+      ruleId
+    } = body;
+
     if (!title || typeof title !== 'string') {
-      res.status(400).json({ error: 'Missing finding details to explain.' });
+      res.status(400).json({
+        error: 'Missing finding details to explain.'
+      });
+
       return;
     }
 
-    const safeSnippet = typeof snippet === 'string' ? snippet.slice(0, MAX_SNIPPET_CHARS) : '';
+
+    // -------------------------------------------------------------------------
+    // Limit snippet size
+    // -------------------------------------------------------------------------
+
+    const safeSnippet =
+      typeof snippet === 'string'
+        ? snippet.slice(0, MAX_SNIPPET_CHARS)
+        : '';
+
+
+    // -------------------------------------------------------------------------
+    // Security-review prompt
+    // -------------------------------------------------------------------------
+
     const prompt =
-      `You are a terse security code reviewer. A static scanner found this issue:\n\n` +
-      `Rule: ${ruleId || 'unknown'}\n` +
-      `Title: ${title}\n` +
-      `File: ${file || 'unknown'}\n` +
-      `Scanner note: ${message || ''}\n` +
-      `Code snippet:\n${safeSnippet}\n\n` +
-      `In under 120 words: 1) confirm briefly whether this looks like a real issue or a likely false positive given only this snippet, and 2) show a minimal corrected version of the snippet. ` +
-      `Do not add unrelated advice. Use plain text, not markdown headers.`;
+      `You are a concise application security code reviewer.
+
+A static security scanner found the following issue:
+
+Rule: ${ruleId || 'unknown'}
+
+Title: ${title}
+
+File: ${file || 'unknown'}
+
+Scanner note:
+${message || ''}
+
+Code snippet:
+${safeSnippet}
+
+Your task:
+
+1. Briefly determine whether this appears to be a real security issue or a likely false positive based only on the supplied snippet.
+2. Explain the security problem in simple terms.
+3. Provide a minimal corrected version of the relevant code when possible.
+4. Do not invent surrounding application code.
+5. Do not provide unrelated recommendations.
+
+Keep the response under 180 words.
+Use plain text with short sections.
+Do not use markdown headers.`;
+
+
+    // -------------------------------------------------------------------------
+    // Gemini request
+    //
+    // Uses Google's REST generateContent endpoint.
+    // The current Gemini documentation supports this request structure.
+    // -------------------------------------------------------------------------
 
     const geminiRes = await fetch(GEMINI_URL, {
       method: 'POST',
+
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
+        'x-goog-api-key': apiKey
       },
+
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 500, temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } },
-      }),
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: prompt
+              }
+            ]
+          }
+        ],
+
+        generationConfig: {
+          maxOutputTokens: 600,
+          temperature: 0.2
+        }
+      })
     });
 
-    if (geminiRes.status === 429) {
-      res.status(429).json({ error: 'Gemini\'s free-tier quota was hit for this key. Try again shortly.' });
-      return;
-    }
-    if (geminiRes.status === 400 || geminiRes.status === 403) {
-      const errBody = await geminiRes.json().catch(() => ({}));
-      res.status(502).json({ error: 'Gemini rejected the request — check that GEMINI_API_KEY is valid: ' + (errBody.error && errBody.error.message ? errBody.error.message : geminiRes.status) });
-      return;
-    }
+
+    // -------------------------------------------------------------------------
+    // Handle Gemini errors
+    // -------------------------------------------------------------------------
+
     if (!geminiRes.ok) {
-      const errBody = await geminiRes.text().catch(() => '');
-      res.status(502).json({ error: 'Gemini API error (' + geminiRes.status + '): ' + errBody.slice(0, 300) });
+      const geminiError =
+        await readGeminiError(geminiRes);
+
+      // Rate limit / quota
+      if (geminiRes.status === 429) {
+        res.status(429).json({
+          error:
+            'Gemini rate limit or quota reached. ' +
+            geminiError
+        });
+
+        return;
+      }
+
+
+      // Authentication / permission
+      if (geminiRes.status === 401) {
+        res.status(502).json({
+          error:
+            'Gemini authentication failed. ' +
+            'Check that GEMINI_API_KEY is correct and active.'
+        });
+
+        return;
+      }
+
+
+      // Invalid request
+      if (geminiRes.status === 400) {
+        res.status(502).json({
+          error:
+            'Gemini rejected the request (400 INVALID_ARGUMENT): ' +
+            geminiError,
+          model: GEMINI_MODEL
+        });
+
+        return;
+      }
+
+
+      // Forbidden
+      if (geminiRes.status === 403) {
+        res.status(502).json({
+          error:
+            'Gemini denied this request (403). ' +
+            geminiError
+        });
+
+        return;
+      }
+
+
+      // Model not found
+      if (geminiRes.status === 404) {
+        res.status(502).json({
+          error:
+            `Gemini model "${GEMINI_MODEL}" was not found. ` +
+            'Check GEMINI_MODEL and your enabled API models.'
+        });
+
+        return;
+      }
+
+
+      // Other Gemini errors
+      res.status(502).json({
+        error:
+          `Gemini API error (${geminiRes.status}): ` +
+          geminiError
+      });
+
       return;
     }
+
+
+    // -------------------------------------------------------------------------
+    // Parse successful response
+    // -------------------------------------------------------------------------
 
     const data = await geminiRes.json();
-    const candidate = data && data.candidates && data.candidates[0];
-    const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] &&
-      candidate.content.parts[0].text;
+
+    const candidate =
+      data &&
+      data.candidates &&
+      data.candidates[0];
+
+    const parts =
+      candidate &&
+      candidate.content &&
+      candidate.content.parts;
+
+
+    // Gemini may return multiple parts.
+    const text =
+      Array.isArray(parts)
+        ? parts
+            .map(part => part?.text || '')
+            .join('')
+            .trim()
+        : '';
+
+
+    // -------------------------------------------------------------------------
+    // No response text
+    // -------------------------------------------------------------------------
 
     if (!text) {
-      res.status(502).json({ error: 'Gemini returned no suggestion for this finding' + (candidate && candidate.finishReason ? ' (finishReason: ' + candidate.finishReason + ')' : '') + '.' });
+      const finishReason =
+        candidate?.finishReason;
+
+      res.status(502).json({
+        error:
+          'Gemini returned no text suggestion' +
+          (
+            finishReason
+              ? ` (finishReason: ${finishReason})`
+              : ''
+          ) +
+          '.'
+      });
+
       return;
     }
 
-    const truncated = candidate.finishReason === 'MAX_TOKENS';
-    res.status(200).json({ suggestion: text.trim() + (truncated ? '\n\n[cut off — hit the response length limit]' : '') });
+
+    // -------------------------------------------------------------------------
+    // Return suggestion
+    // -------------------------------------------------------------------------
+
+    res.status(200).json({
+      suggestion: text
+    });
+
+
   } catch (outerErr) {
+
+    console.error(
+      'Redline Gemini endpoint error:',
+      outerErr?.message || outerErr
+    );
+
     try {
-      res.status(500).json({ error: 'Unexpected server error: ' + (outerErr && outerErr.message ? outerErr.message : String(outerErr)) });
+      res.status(500).json({
+        error:
+          'Unexpected server error: ' +
+          (
+            outerErr?.message ||
+            String(outerErr)
+          )
+      });
     } catch (e) {
-      res.end('{"error":"Unexpected server error"}');
+      res.end(
+        '{"error":"Unexpected server error"}'
+      );
     }
   }
 };
