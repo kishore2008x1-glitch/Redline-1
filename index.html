@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Redline — Security review for AI-generated code</title>
@@ -461,35 +458,13 @@
     .finding{ flex-wrap:wrap; }
     .sev{ width:auto; }
   }
-
-/* ===== REDLINE PREMIUM UI ===== */
-:root{
-  --bg:#07090d; --surface:#0c1016; --surface-2:#111720; --surface-3:#171f29;
-  --line:#222c37; --text:#f5f7f8; --text-dim:#98a4b0; --text-faint:#5e6b78;
-  --accent:#ff5e68; --safe:#39e6b1; --warn:#ffb84d;
-  --font-sans:'DM Sans',Inter,system-ui,sans-serif; --font-mono:'JetBrains Mono',ui-monospace,monospace;
-}
-html{scroll-behavior:smooth} body{font-family:var(--font-sans);background:radial-gradient(900px 500px at 10% -10%,rgba(255,94,104,.12),transparent 60%),radial-gradient(700px 500px at 90% 0%,rgba(57,230,177,.055),transparent 60%),var(--bg)}
-body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.025;background-image:linear-gradient(rgba(255,255,255,.7) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.7) 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to bottom,#000,transparent 82%)}
-.nav{background:rgba(7,9,13,.78);backdrop-filter:blur(20px) saturate(140%);-webkit-backdrop-filter:blur(20px) saturate(140%);border-bottom:1px solid rgba(255,255,255,.07);box-shadow:0 12px 40px rgba(0,0,0,.2)}
-.nav-inner{height:68px}.logo{font-family:var(--font-mono);letter-spacing:.02em}.logo-mark{box-shadow:0 0 20px rgba(255,94,104,.7),0 0 0 4px rgba(255,94,104,.07)}.logo-beta{font:500 8px var(--font-mono);letter-spacing:.12em;color:#64717d;border:1px solid #29333e;border-radius:999px;padding:3px 6px;margin-left:7px}
-.nav-links{gap:4px}.nav-links a{border-radius:9px;padding:9px 11px;transition:.18s ease}.nav-links a:hover,.nav-links a.active{background:rgba(255,255,255,.055);color:var(--text)}
-.btn{border-radius:10px;min-height:42px;padding:10px 17px;font-weight:600;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:linear-gradient(135deg,#fff,#e8ecef);box-shadow:0 8px 26px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.9)}.btn-primary:hover{box-shadow:0 12px 34px rgba(0,0,0,.32)}.btn-outline{background:rgba(255,255,255,.025);border-color:#2c3743}.btn-outline:hover{background:rgba(255,255,255,.06);border-color:#536271}
-.hero{padding-top:86px;padding-bottom:56px}.hero-grid{gap:70px}.hero h1{font-size:clamp(42px,6vw,72px);line-height:.98;letter-spacing:-.055em}.hero h1 .hl{background:linear-gradient(105deg,#ff626d,#ff9c88);-webkit-background-clip:text;background-clip:text;color:transparent}.hero-sub{font-size:18px;line-height:1.7;color:#a4afbb;max-width:60ch}.eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:.15em}.hero-ctas{margin-top:32px}.coverage-card,.card,.rule-card,.roadmap-card,.scanner{background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),var(--surface);border-color:rgba(255,255,255,.08);box-shadow:0 20px 60px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.035)}.coverage-card{border-radius:18px;padding:24px}.ct-count{border-radius:999px;background:rgba(57,230,177,.07);border-color:rgba(57,230,177,.2)}.chip{border-radius:999px;background:rgba(255,255,255,.025);padding:7px 10px;transition:.16s}.chip:hover{background:rgba(255,255,255,.06);transform:translateY(-1px)}
-.section{padding:100px 0;border-bottom-color:rgba(255,255,255,.055)}.section-head h2{font-size:clamp(29px,4vw,43px);letter-spacing:-.04em}.cards{gap:16px}.card{border-radius:16px;padding:24px;min-height:210px;transition:.2s}.card:hover,.rule-card:hover,.roadmap-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.15);box-shadow:0 26px 65px rgba(0,0,0,.25)}
-.scanner{border-radius:18px;overflow:hidden}.scanner-tabs{padding:6px;background:rgba(255,255,255,.02)}.scanner-tab{border-radius:9px;padding:11px 15px}.scanner-tab.active{background:#19212b;border-color:#33404d;box-shadow:0 5px 15px rgba(0,0,0,.2)}.scanner-body{padding:24px}.scanner textarea,.scanner input[type=url]{background:#080b10;border-color:#27333f;border-radius:12px}.scanner textarea:focus,.scanner input[type=url]:focus{border-color:#657484;box-shadow:0 0 0 4px rgba(255,255,255,.035);outline:0}.upload-zone{border-radius:14px;background:rgba(255,255,255,.012);border-color:#2a3743;padding:42px 16px}.upload-zone:hover,.upload-zone.drag{background:rgba(57,230,177,.045);border-color:rgba(57,230,177,.65)}
-/* chat becomes a deliberate product workspace, not a generic chatbot */
-[data-page="chat"]{min-height:calc(100vh - 68px)}.chat-shell{max-width:980px;margin:0 auto;min-height:calc(100vh - 68px);display:flex;flex-direction:column;padding:48px 22px 28px}.chat-messages{flex:1;max-height:none;padding:24px 4px 34px}.chat-msg.model{align-items:flex-start}.chat-bubble{border-radius:16px;border:1px solid rgba(255,255,255,.07);box-shadow:0 14px 40px rgba(0,0,0,.16);line-height:1.65}.chat-msg.model .chat-bubble{background:linear-gradient(145deg,#111821,#0d1219);max-width:720px}.chat-msg.user .chat-bubble{background:#f1f4f5;color:#0b0e12;border:0;box-shadow:0 10px 28px rgba(0,0,0,.22)}.chat-composer{position:sticky;bottom:18px;background:rgba(12,16,22,.88);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:10px;box-shadow:0 22px 70px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.04)}.chat-input-row{background:#080b10;border:1px solid #27323e;border-radius:12px;padding:5px}.chat-input-row textarea{font-family:var(--font-sans);line-height:1.5}.chat-attach,.chat-send{width:38px;height:38px;border-radius:9px;transition:.16s}.chat-attach:hover{background:#151c25}.chat-send{background:#f3f5f6;color:#080b0e;box-shadow:0 5px 15px rgba(0,0,0,.2)}.chat-send:hover{transform:translateY(-1px);background:#fff}.scanner-hint{font-family:var(--font-mono);font-size:9px;color:#697684;padding:0 4px}
-.quote-block{border-left:3px solid var(--accent);background:linear-gradient(90deg,rgba(255,94,104,.045),transparent);border-radius:0 10px 10px 0;padding:14px 20px}.pipeline .pl-step{border-radius:12px;background:rgba(255,255,255,.018);border-color:rgba(255,255,255,.07)}
-@media(max-width:900px){.hero{padding-top:58px}.hero-grid{gap:44px}.section{padding:72px 0}.chat-shell{padding-top:28px}.logo-beta{display:none}}@media(max-width:520px){.hero h1{font-size:clamp(38px,11vw,50px)}.hero-sub{font-size:16px}.hero-ctas .btn{width:100%}.chat-shell{padding-left:12px;padding-right:12px}.chat-composer{bottom:10px}}
-
 </style>
 </head>
 <body>
 
   <nav class="nav" id="siteNav">
     <div class="nav-inner">
-      <a href="#/about" class="logo" data-nav><span class="logo-mark"></span>redline<span class="logo-beta">SECURITY</span></a>
+      <a href="#/" class="logo" data-nav><span class="logo-mark"></span>redline</a>
       <div class="nav-links" id="navLinks">
         <a href="#/" data-nav data-page="chat">Chat</a>
         <a href="#/scan" data-nav data-page="scan">Full scan report</a>
@@ -503,7 +478,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
   </nav>
 
   <!-- ============ CHAT (default landing) ============ -->
-  <div class="page" data-page="chat">
+  <div class="page active" data-page="chat">
     <div class="chat-shell">
       <div class="chat-messages" id="chatMessages">
         <div class="chat-msg model">
@@ -536,7 +511,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opa
   </div>
 
   <!-- ============ ABOUT (old marketing home) ============ -->
-  <div class="page active" data-page="about">
+  <div class="page" data-page="about">
     <section class="hero wrap">
       <div class="hero-grid">
         <div>
@@ -826,7 +801,7 @@ app.post('/checkout', async (req, res) => {
   function routeFromHash(){
     var h = (location.hash || '#/').replace('#/', '').replace('#', '');
     var valid = ['chat','scan','rules','roadmap','about'];
-    var name = h === '' ? 'about' : h;
+    var name = h === '' ? 'chat' : h;
     if (valid.indexOf(name) === -1) name = 'chat';
     showPage(name);
   }
