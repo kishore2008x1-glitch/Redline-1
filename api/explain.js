@@ -75,7 +75,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 300, temperature: 0.2 },
+        generationConfig: { maxOutputTokens: 500, temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } },
       }),
     });
 
@@ -95,16 +95,17 @@ module.exports = async function handler(req, res) {
     }
 
     const data = await geminiRes.json();
-    const text = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-      data.candidates[0].content.parts && data.candidates[0].content.parts[0] &&
-      data.candidates[0].content.parts[0].text;
+    const candidate = data && data.candidates && data.candidates[0];
+    const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] &&
+      candidate.content.parts[0].text;
 
     if (!text) {
-      res.status(502).json({ error: 'Gemini returned no suggestion for this finding.' });
+      res.status(502).json({ error: 'Gemini returned no suggestion for this finding' + (candidate && candidate.finishReason ? ' (finishReason: ' + candidate.finishReason + ')' : '') + '.' });
       return;
     }
 
-    res.status(200).json({ suggestion: text.trim() });
+    const truncated = candidate.finishReason === 'MAX_TOKENS';
+    res.status(200).json({ suggestion: text.trim() + (truncated ? '\n\n[cut off — hit the response length limit]' : '') });
   } catch (outerErr) {
     try {
       res.status(500).json({ error: 'Unexpected server error: ' + (outerErr && outerErr.message ? outerErr.message : String(outerErr)) });

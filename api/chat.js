@@ -730,7 +730,7 @@ async function callGemini(apiKey, history, newUserText) {
     body: JSON.stringify({
       system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
       contents,
-      generationConfig: { maxOutputTokens: 700, temperature: 0.3 },
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.3, thinkingConfig: { thinkingBudget: 0 } },
     }),
   });
 
@@ -753,15 +753,16 @@ async function callGemini(apiKey, history, newUserText) {
   }
 
   const data = await geminiRes.json();
-  const text = data && data.candidates && data.candidates[0] && data.candidates[0].content &&
-    data.candidates[0].content.parts && data.candidates[0].content.parts[0] &&
-    data.candidates[0].content.parts[0].text;
+  const candidate = data && data.candidates && data.candidates[0];
+  const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] &&
+    candidate.content.parts[0].text;
   if (!text) {
-    const err = new Error('Gemini returned an empty response.');
+    const err = new Error('Gemini returned an empty response' + (candidate && candidate.finishReason ? ' (finishReason: ' + candidate.finishReason + ')' : '') + '.');
     err.code = 'EMPTY';
     throw err;
   }
-  return text.trim();
+  const truncated = candidate.finishReason === 'MAX_TOKENS';
+  return text.trim() + (truncated ? '\n\n[cut off — hit the response length limit; ask me to continue]' : '');
 }
 
 function fallbackFindingsReply(findings, summary, grade) {
