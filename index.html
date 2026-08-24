@@ -505,19 +505,19 @@
     <div class="nav-inner">
       <a href="#/" class="logo" data-nav><span class="logo-mark"></span>redline</a>
       <div class="nav-links" id="navLinks">
-        <a href="#/" data-nav data-page="chat">Chat</a>
+        <a href="#/" data-nav data-page="about">Home</a>
+        <a href="#/chat" data-nav data-page="chat">Chat</a>
         <a href="#/scan" data-nav data-page="scan">Full scan report</a>
         <a href="#/rules" data-nav data-page="rules">Detection rules</a>
         <a href="#/roadmap" data-nav data-page="roadmap">Roadmap</a>
-        <a href="#/about" data-nav data-page="about">About</a>
       </div>
       <a href="#/scan" class="btn btn-primary" data-nav>Full report</a>
       <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks"><span></span></button>
     </div>
   </nav>
 
-  <!-- ============ CHAT (default landing) ============ -->
-  <div class="page active" data-page="chat">
+  <!-- ============ CHAT ============ -->
+  <div class="page" data-page="chat">
     <div class="chat-shell">
       <div class="chat-messages" id="chatMessages">
         <div class="chat-msg model">
@@ -549,8 +549,8 @@
     </div>
   </div>
 
-  <!-- ============ ABOUT (old marketing home) ============ -->
-  <div class="page" data-page="about">
+  <!-- ============ HOME (default landing) ============ -->
+  <div class="page active" data-page="about">
     <section class="hero wrap">
       <div class="hero-grid">
         <div>
@@ -840,8 +840,8 @@ app.post('/checkout', async (req, res) => {
   function routeFromHash(){
     var h = (location.hash || '#/').replace('#/', '').replace('#', '');
     var valid = ['chat','scan','rules','roadmap','about'];
-    var name = h === '' ? 'chat' : h;
-    if (valid.indexOf(name) === -1) name = 'chat';
+    var name = h === '' ? 'about' : h;
+    if (valid.indexOf(name) === -1) name = 'about';
     showPage(name);
   }
   window.addEventListener('hashchange', routeFromHash);
