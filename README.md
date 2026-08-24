@@ -56,9 +56,10 @@ tier, no card). **If a key is ever pasted into a chat, doc, or public repo,
 treat it as compromised and regenerate it there** — rotating a key is cheap;
 a leaked live key is not.
 
-Model used: `gemini-flash-latest` by default (Google's auto-updating alias
-for the current stable Flash model) — override with a `GEMINI_MODEL` env var
-if you want to pin a specific version.
+Model used: `gemini-3.6-flash` by default — override with a `GEMINI_MODEL`
+env var if Google moves the goalposts again (they deprecated `gemini-2.5-flash`
+for new API keys mid-build here; if you hit a 404 saying a model "is no
+longer available," that error tells you the exact replacement name to use).
 
 Both AI endpoints share a crude in-memory rate limit (20 req/min per warm
 serverless instance) to protect the free-tier quota; it resets on cold start
