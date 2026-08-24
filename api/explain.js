@@ -67,7 +67,32 @@ async function readGeminiError(response) {
 // -----------------------------------------------------------------------------
 // API handler
 // -----------------------------------------------------------------------------
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+async function callGemini(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    if (response.status !== 503 && response.status !== 429) {
+      return response;
+    }
+
+    if (attempt === maxRetries) {
+      return response;
+    }
+
+    const delay = Math.min(
+      1000 * Math.pow(2, attempt),
+      8000
+    );
+
+    const jitter = Math.random() * 500;
+
+    await sleep(delay + jitter);
+  }
+}
 module.exports = async function handler(req, res) {
   try {
     // CORS
