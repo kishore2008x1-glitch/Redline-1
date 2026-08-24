@@ -5,35 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Redline — Security review for AI-generated code</title>
 <meta name="description" content="Redline scans the apps you built with Lovable, Bolt, Replit and v0 for the vulnerabilities vibe coding leaves behind — before you ship them." />
-<meta name="theme-color" content="#05060F" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230A0E12'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23FF5C5C'/%3E%3C/svg%3E" />
+<meta name="theme-color" content="#05060f" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2305060f'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%23e46d4c'/%3E%3C/svg%3E" />
 <meta property="og:title" content="Redline — Security review for AI-generated code" />
 <meta property="og:description" content="Scans the apps you built with Lovable, Bolt, Replit and v0 for the vulnerabilities vibe coding leaves behind." />
 <meta property="og:type" content="website" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #0A0E12;
-    --surface: #11171E;
-    --surface-2: #161D25;
-    --line: #212A33;
-    --line-soft: #1A222A;
-    --text: #E9EDEF;
-    --text-dim: #93A0AC;
-    --text-faint: #5C6773;
-    --critical: #FF5C5C;
-    --critical-dim: #4A2529;
-    --warn: #FFB020;
-    --warn-dim: #453419;
-    --safe: #33D9A8;
-    --safe-dim: #143A31;
-    --info: #6E9BFF;
-    --info-dim: #1E2A44;
-    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --sans: 'Inter', system-ui, -apple-system, sans-serif;
-    --maxw: 1160px;
+    /* Authkit — "frosted glass cathedral at midnight" — mapped from
+       https://styles.refero.design/style/e80231a2-e4d6-406a-a2c9-2e6109679690
+       Severity colors (critical/warn/safe/info) are a functional exception a
+       security scanner needs; everything else follows the source system.
+       Void Violet is reserved for the single primary submit action (Run scan),
+       matching its documented role as the sole chromatic CTA accent. */
+    --bg: #05060f;                              /* Midnight Canvas */
+    --surface: rgba(186,214,247,0.03);          /* Glass Card frost tint */
+    --surface-2: rgba(199,211,234,0.06);        /* Text input / badge frost */
+    --surface-modal: rgba(5,6,15,0.97);         /* Deep Glass — modal/panel */
+    --line: rgba(186,215,247,0.12);             /* Glass Edge — universal hairline */
+    --line-soft: rgba(186,215,247,0.07);
+    --text: #d1e4fa;                            /* Frost Glow — primary body */
+    --text-dim: #c7d3ea;                        /* Moon Mist — muted */
+    --text-faint: #9da7ba;                      /* Fog Veil — helper */
+    --text-bright: #ffffff;                     /* Pure White — max emphasis */
+    --accent: #663af3;                          /* Void Violet — sole CTA accent */
+    --accent-dim: rgba(102,58,243,0.16);
+    --critical: #e46d4c;                        /* Ember Glow */
+    --critical-dim: rgba(228,109,76,0.14);
+    --warn: #e0a458;
+    --warn-dim: rgba(224,164,88,0.14);
+    --safe: #269684;                            /* Deep Teal */
+    --safe-dim: rgba(38,150,132,0.16);
+    --info: #027dea;                            /* Signal Blue */
+    --info-dim: rgba(2,125,234,0.14);
+    --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; /* dotDigital sub */
+    --sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* Untitled Sans sub */
+    --display: 'Space Grotesk', var(--sans);    /* aeonikPro substitute */
+    --skywash: linear-gradient(0deg, #d8ecf8 0%, #98c0ef 100%);
+    --maxw: 1200px;
+    --radius-sm: 6px;                           /* badges / inputs / tags */
+    --radius: 16px;                             /* cards / modals */
+    --radius-pill: 999px;                       /* buttons, interactive pills */
+    --radius-icon: 9999px;                      /* icon containers */
+    --graphite: rgba(186,214,247,0.18);
+    --shadow-card: inset 0 1px 1px rgba(199,211,234,0.12), inset 0 24px 48px rgba(199,211,234,0.05), 0 24px 32px rgba(6,6,14,0.55);
+    --shadow-modal: inset 0 1px 1px rgba(216,236,248,0.2), inset 0 24px 48px rgba(168,216,245,0.06), 0 16px 32px rgba(0,0,0,0.3);
+    --shadow-glow-sm: 0 0 6px rgba(186,207,247,0.28);
   }
 
   *,*::before,*::after{ box-sizing: border-box; min-width:0; }
@@ -42,18 +62,26 @@
   body{
     margin:0;
     background:
-      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(255,92,92,0.08), transparent 60%),
-      radial-gradient(ellipse 700px 500px at 100% 0%, rgba(51,217,168,0.05), transparent 55%),
+      repeating-linear-gradient(0deg, rgba(186,215,247,0.055) 0px, rgba(186,215,247,0.055) 1px, transparent 1px, transparent 88px),
+      repeating-linear-gradient(90deg, rgba(186,215,247,0.055) 0px, rgba(186,215,247,0.055) 1px, transparent 1px, transparent 88px),
       var(--bg);
     color: var(--text);
     font-family: var(--sans);
     line-height: 1.5;
+    letter-spacing: -0.16px;
     -webkit-font-smoothing: antialiased;
+    position: relative;
   }
+  body::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:560px; pointer-events:none; z-index:0;
+    background: conic-gradient(at 50% -5%, transparent 45%, rgba(124,145,182,0.22) 49%, rgba(124,145,182,0.38) 50%, rgba(124,145,182,0.22) 51%, transparent 55%);
+    mask-image: linear-gradient(to bottom, black, transparent);
+  }
+  .nav, .page{ position:relative; z-index:1; }
   img,svg{ display:block; max-width:100%; }
   a{ color: inherit; }
-  ::selection{ background: var(--critical); color: #12070a; }
-  :focus-visible{ outline: 2px solid var(--safe); outline-offset: 3px; border-radius: 3px; }
+  ::selection{ background: var(--accent); color: #fff; }
+  :focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
   @media (prefers-reduced-motion: reduce){
     html{ scroll-behavior: auto; }
     *,*::before,*::after{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
@@ -68,7 +96,7 @@
   /* ---------- NAV ---------- */
   .nav{
     position: sticky; top:0; z-index: 50;
-    background: rgba(10,14,18,0.85); backdrop-filter: blur(10px);
+    background: rgba(5,6,15,0.85); backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--line-soft);
   }
   .nav-inner{
@@ -81,12 +109,13 @@
     display:flex; align-items:center; gap:9px; font-family: var(--mono); font-weight:600;
     font-size:16px; text-decoration:none; letter-spacing:-0.01em; flex-shrink:0;
   }
-  .logo-mark{ width:9px; height:9px; border-radius:50%; background: var(--critical); box-shadow: 0 0 10px rgba(255,92,92,.6); }
+  .logo-mark{ width:9px; height:9px; border-radius:50%; background: var(--critical); }
   .nav-links{ display:flex; align-items:center; gap: 28px; }
   .nav-links a{ font-size: 14px; color: var(--text-dim); text-decoration:none; transition: color .15s ease; white-space:nowrap; }
-  .nav-links a:hover, .nav-links a.active{ color: var(--text); }
+  .nav-links a:hover{ color: var(--text); }
+  .nav-links a.active{ color: var(--accent); }
   .nav-toggle{
-    display:none; background:none; border:1px solid var(--line); border-radius:7px;
+    display:none; background:none; border:1px solid var(--line); border-radius:var(--radius-sm);
     width:38px; height:38px; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;
   }
   .nav-toggle span, .nav-toggle::before, .nav-toggle::after{
@@ -100,27 +129,32 @@
   .nav.open .nav-toggle::after{ transform: rotate(-45deg); }
   .btn{
     display:inline-flex; align-items:center; justify-content:center; gap:8px;
-    font-family: var(--sans); font-weight:600; font-size:14px; border-radius:8px;
+    font-family: var(--sans); font-weight:500; font-size:14px; border-radius:var(--radius-pill);
     padding: 10px 18px; cursor:pointer; border:1px solid transparent; text-decoration:none;
-    transition: transform .12s ease, background .15s ease, border-color .15s ease; white-space:nowrap;
+    transition: background .15s ease, border-color .15s ease; white-space:nowrap;
   }
-  .btn:active{ transform: scale(.97); }
-  .btn-primary{ background: var(--text); color:#0A0E12; }
-  .btn-primary:hover{ background:#fff; }
-  .btn-outline{ background:none; border-color: var(--line); color: var(--text); }
-  .btn-outline:hover{ border-color: var(--text-dim); }
+  .btn:active{ transform: scale(.98); }
+  /* Pill Button (Primary Ghost) — the system's default button */
+  .btn-primary{ background: rgba(186,214,247,0.06); color: var(--text-bright); border:1px solid var(--line); }
+  .btn-primary:hover{ background: rgba(186,214,247,0.12); }
+  /* Pill Button (Outlined) — secondary */
+  .btn-outline{ background:none; border:1px solid var(--line); color: var(--text); }
+  .btn-outline:hover{ border-color: rgba(186,215,247,0.28); color: var(--text-bright); }
+  /* Violet CTA — reserved for the single primary submit action (Run scan) */
+  .btn-cta{ background: var(--accent); color:#fff; border:1px solid transparent; border-radius: var(--radius-sm); padding: 12px 22px; }
+  .btn-cta:hover{ background:#7548f5; }
   .btn:disabled{ opacity:.55; cursor:not-allowed; transform:none !important; }
 
   /* ---------- LAYOUT / SECTIONS ---------- */
   .section{ padding: 76px 0; border-bottom: 1px solid var(--line-soft); }
   .section-tight{ padding: 52px 0; }
   .eyebrow{
-    font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--critical); margin-bottom: 14px; display:flex; align-items:center; gap:8px;
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.85px; text-transform: uppercase;
+    color: var(--text-dim); margin-bottom: 14px; display:flex; align-items:center; gap:8px;
   }
-  .eyebrow::before{ content:''; width:14px; height:1px; background: var(--critical); }
+  .eyebrow::before{ content:''; width:14px; height:1px; background: var(--accent); }
   .section-head{ max-width: 640px; margin-bottom: 40px; }
-  .section-head h2{ font-size: clamp(24px, 4vw, 34px); font-weight:700; letter-spacing:-0.01em; line-height:1.15; }
+  .section-head h2{ font-family: var(--display); font-size: clamp(24px, 4vw, 34px); font-weight:500; letter-spacing:-0.01em; line-height:1.15; }
   .section-head p{ margin-top:14px; color: var(--text-dim); font-size:16px; line-height:1.6; }
 
   /* ---------- PAGE ROUTING ---------- */
@@ -131,8 +165,11 @@
   .hero{ padding: 56px 0 20px; }
   .hero-grid{ display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items:start; }
   @media (max-width: 900px){ .hero-grid{ grid-template-columns: 1fr; gap:36px; } }
-  .hero h1{ font-size: clamp(32px, 5.4vw, 54px); font-weight:800; letter-spacing:-0.02em; line-height:1.05; }
-  .hero h1 .hl{ color: var(--critical); }
+  .hero h1{
+    font-family: var(--display); font-size: clamp(32px, 5.4vw, 56px); font-weight:500; letter-spacing:-0.5px; line-height:1.14;
+    background: var(--skywash); -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero h1 .hl{ background:none; -webkit-background-clip:initial; background-clip:initial; color: var(--critical); }
   .hero-sub{ margin-top:18px; font-size: 17px; color: var(--text-dim); max-width: 46ch; line-height:1.65; }
   .hero-ctas{ display:flex; flex-wrap:wrap; gap:12px; margin-top:28px; }
   .hero-flags{ display:flex; flex-wrap:wrap; gap:8px 18px; margin-top:26px; }
@@ -140,18 +177,18 @@
   .flag .dot{ width:5px; height:5px; border-radius:50%; background: var(--safe); flex-shrink:0; }
 
   .coverage-card{
-    background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px;
+    background: var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow: var(--shadow-card);
   }
   .coverage-card .ct-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .coverage-card .ct-title{ font-family: var(--mono); font-size:12.5px; color: var(--text-dim); }
   .coverage-card .ct-count{ font-family: var(--mono); font-size:12.5px; color: var(--safe); }
   .chip-grid{ display:flex; flex-wrap:wrap; gap:8px; }
   .chip{
-    font-family: var(--mono); font-size:11.5px; padding:6px 10px; border-radius:6px;
+    font-family: var(--mono); font-size:11.5px; padding:6px 10px; border-radius: var(--radius-sm);
     border:1px solid var(--line); color: var(--text-dim); background: var(--surface-2);
   }
-  .chip.crit{ border-color: rgba(255,92,92,.35); color:#ffb0ac; }
-  .chip.warn{ border-color: rgba(255,176,32,.3); color:#ffd28a; }
+  .chip.crit{ border-color: rgba(228,109,76,.35); color:#f0a591; }
+  .chip.warn{ border-color: rgba(224,164,88,.35); color:#f0c793; }
 
   /* ---------- LOGOS ---------- */
   .logos-row{ display:flex; flex-wrap:wrap; align-items:center; gap: 18px 34px; opacity:.8; }
@@ -160,9 +197,9 @@
   /* ---------- CARDS ---------- */
   .cards{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   @media (max-width: 900px){ .cards{ grid-template-columns: 1fr; } }
-  .card{ background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  .card{ background: var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px; box-shadow: var(--shadow-card); }
   .card .icon{
-    width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius: var(--radius-icon); display:flex; align-items:center; justify-content:center;
     font-family: var(--mono); font-size:15px; margin-bottom:16px;
   }
   .card.c-crit .icon{ background: var(--critical-dim); color: var(--critical); }
@@ -182,9 +219,10 @@
   .cta-section{ text-align:center; }
   .cta-form{ display:flex; gap:10px; max-width:440px; margin: 26px auto 0; flex-wrap:wrap; }
   .cta-form input[type=email]{
-    flex:1; min-width:200px; background: var(--surface); border:1px solid var(--line);
-    color: var(--text); border-radius:8px; padding: 11px 14px;
+    flex:1; min-width:200px; background: var(--surface-2); border:1px solid var(--line);
+    color: var(--text-bright); border-radius: var(--radius-sm); padding: 11px 14px;
   }
+  .cta-form input[type=email]:focus{ border-color: rgba(186,215,247,0.24); outline:none; }
   .cta-form input::placeholder{ color: var(--text-faint); }
   .form-msg{ margin-top:12px; font-size:13px; color: var(--safe); min-height:18px; }
 
@@ -222,7 +260,7 @@
   @keyframes chatpulse{ 0%,60%,100%{ opacity:.3; transform: translateY(0); } 30%{ opacity:1; transform: translateY(-3px); } }
 
   .chat-scan-card{
-    border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px; background: var(--surface-2);
+    border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin-bottom:10px; background: var(--surface-2);
   }
   .chat-scan-head{ display:flex; align-items:center; gap:10px; padding:10px 13px; border-bottom:1px solid var(--line-soft); }
   .chat-scan-head .fname{ font-family: var(--mono); font-size:12.5px; color: var(--text-dim); overflow-wrap:anywhere; }
@@ -253,7 +291,7 @@
     cursor:pointer; transition: color .15s ease, border-color .15s ease;
   }
   .chat-attach:hover{ color: var(--text); border-color: var(--text-dim); }
-  .chat-send{ background: var(--safe); color:#08130E; border-color: var(--safe); }
+  .chat-send{ background: var(--safe); color:#05060f; border-color: var(--safe); }
   .chat-send:hover{ filter: brightness(1.08); }
   .chat-send:disabled{ opacity:.5; cursor:not-allowed; filter:none; }
   #chatTextarea{
@@ -266,24 +304,25 @@
     .chat-bubble{ max-width:94%; }
   }
 
-  .scanner{ background: var(--surface); border:1px solid var(--line); border-radius: 12px; overflow:hidden; }
+  .scanner{ background: var(--surface); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow: var(--shadow-card); }
   .scanner-tabs{ display:flex; border-bottom:1px solid var(--line); background: var(--surface-2); overflow-x:auto; }
   .scanner-tab{
     font-family: var(--mono); font-size:13px; color: var(--text-dim); background:none; border:none;
     padding: 13px 18px; cursor:pointer; border-bottom:2px solid transparent; transition: color .15s ease;
     white-space:nowrap; flex-shrink:0;
   }
-  .scanner-tab.active{ color: var(--text); border-bottom-color: var(--safe); }
+  .scanner-tab.active{ color: var(--text-bright); border-bottom-color: var(--accent); }
   .scanner-body{ padding: 20px; }
   .scanner-pane{ display:none; }
   .scanner-pane.active{ display:block; }
   .scanner textarea{
-    width:100%; min-height: 200px; resize: vertical; background: var(--bg); border:1px solid var(--line-soft);
-    color: var(--text); border-radius:8px; padding: 14px; font-family: var(--mono); font-size: 13px; line-height:1.6;
+    width:100%; min-height: 200px; resize: vertical; background: var(--surface-2); border:1px solid var(--line);
+    color: var(--text-bright); border-radius:var(--radius-sm); padding: 14px; font-family: var(--mono); font-size: 13px; line-height:1.6;
   }
+  .scanner textarea:focus, .scanner input[type=url]:focus{ outline:none; border-color: rgba(186,215,247,0.28); }
   .scanner input[type=url]{
-    width:100%; background: var(--bg); border:1px solid var(--line-soft); color: var(--text);
-    border-radius:8px; padding: 13px 14px; font-family: var(--mono); font-size: 14.5px;
+    width:100%; background: var(--surface-2); border:1px solid var(--line); color: var(--text-bright);
+    border-radius:var(--radius-sm); padding: 13px 14px; font-family: var(--mono); font-size: 14.5px;
   }
   .scanner input::placeholder, .scanner textarea::placeholder{ color: var(--text-faint); }
   .scanner-hint{ font-size:12.5px; color: var(--text-faint); margin-top:8px; }
@@ -299,17 +338,17 @@
   @keyframes spin{ to{ transform: rotate(360deg); } }
 
   .upload-zone{
-    border:1.5px dashed var(--line); border-radius:10px; padding: 26px 16px; text-align:center;
+    border:1.5px dashed var(--line); border-radius:var(--radius-sm); padding: 26px 16px; text-align:center;
     cursor:pointer; transition: border-color .15s ease, background .15s ease;
   }
-  .upload-zone:hover, .upload-zone.drag{ border-color: var(--safe); background: rgba(51,217,168,0.04); }
+  .upload-zone:hover, .upload-zone.drag{ border-color: var(--safe); background: rgba(38,150,132,0.06); }
   .upload-zone input[type=file]{ display:none; }
   .upload-zone .uz-title{ font-size:14px; font-weight:600; }
   .upload-zone .uz-sub{ font-size:12.5px; color: var(--text-faint); margin-top:4px; }
   .file-list{ margin-top:14px; display:flex; flex-direction:column; gap:6px; }
   .file-row{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
-    background: var(--bg); border:1px solid var(--line-soft); border-radius:7px; padding:8px 12px;
+    background: var(--surface-2); border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:8px 12px;
     font-family: var(--mono); font-size:12.5px;
   }
   .file-row .fname{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -325,7 +364,7 @@
   .results-head .rh-left{ display:flex; align-items:center; gap:12px; min-width:0; flex-wrap:wrap; }
   .results-head .title{ font-family: var(--mono); font-size:13px; color: var(--text-dim); overflow-wrap:anywhere; }
   .grade-badge{
-    font-family: var(--mono); font-weight:700; font-size:13px; width:26px; height:26px; border-radius:6px;
+    font-family: var(--mono); font-weight:600; font-size:13px; width:26px; height:26px; border-radius:var(--radius-sm);
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
   .grade-A{ background: var(--safe-dim); color: var(--safe); }
@@ -341,10 +380,10 @@
 
   .filter-row{ display:flex; gap:8px; padding: 14px 20px 0; flex-wrap:wrap; }
   .filter-chip{
-    font-family: var(--mono); font-size:12px; padding:6px 12px; border-radius:999px;
+    font-family: var(--mono); font-size:12px; padding:6px 12px; border-radius:var(--radius-sm);
     border:1px solid var(--line); background:none; color: var(--text-dim); cursor:pointer;
   }
-  .filter-chip.active{ background: var(--surface-2); color: var(--text); border-color: var(--text-dim); }
+  .filter-chip.active{ background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
   .filter-chip .fc-dot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; }
 
   .results-empty{ padding: 34px 20px; text-align:center; color: var(--text-faint); font-size:14px; }
@@ -392,7 +431,7 @@
   /* ---------- RULES PAGE ---------- */
   .rule-list{ display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; }
   @media (max-width: 760px){ .rule-list{ grid-template-columns:1fr; } }
-  .rule-card{ background: var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  .rule-card{ background: var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:18px; }
   .rule-card .rc-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
   .rule-card h3{ font-size:14.5px; font-weight:600; }
   .rule-card p{ font-size:13px; color: var(--text-dim); line-height:1.6; }
@@ -416,7 +455,7 @@
 
   .roadmap-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:18px; margin-top:12px; }
   @media (max-width: 900px){ .roadmap-grid{ grid-template-columns:1fr; } }
-  .roadmap-card{ background: var(--surface); border:1px solid var(--line); border-radius:12px; padding:22px; }
+  .roadmap-card{ background: var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px; }
   .roadmap-card .rm-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
   .roadmap-card h3{ font-size:16px; font-weight:600; }
   .roadmap-card p{ font-size:13.5px; color: var(--text-dim); line-height:1.65; }
@@ -458,335 +497,26 @@
     .finding{ flex-wrap:wrap; }
     .sev{ width:auto; }
   }
-
-  /* =========================================================
-     REDLINE / AUTHKIT-INSPIRED PREMIUM SYSTEM
-     Frosted glass cathedral at midnight
-     ========================================================= */
-  :root{
-    --rk-bg:#05060f;
-    --rk-steel:#2f343e;
-    --rk-fog:#9da7ba;
-    --rk-moon:#c7d3ea;
-    --rk-frost:#d1e4fa;
-    --rk-ice:#d8ecf8;
-    --rk-blue:#98c0ef;
-    --rk-violet:#663af3;
-    --rk-edge:rgba(186,215,247,.12);
-    --rk-fill:rgba(186,214,247,.035);
-    --rk-shadow:rgba(63,73,89,.35);
-  }
-
-  body{
-    background:
-      radial-gradient(ellipse 720px 420px at 50% -14%, rgba(124,145,182,.18), transparent 68%),
-      radial-gradient(ellipse 520px 420px at 8% 20%, rgba(102,58,243,.06), transparent 72%),
-      var(--rk-bg);
-    color:var(--rk-frost);
-  }
-  ::selection{background:rgba(102,58,243,.75);color:#fff;}
-  :focus-visible{outline:2px solid rgba(182,217,252,.65);outline-offset:4px;}
-
-  .nav{
-    background:rgba(5,6,15,.72);
-    backdrop-filter:blur(20px) saturate(125%);
-    -webkit-backdrop-filter:blur(20px) saturate(125%);
-    border-bottom:1px solid rgba(186,215,247,.08);
-    box-shadow:inset 0 -1px 0 rgba(216,236,248,.04);
-  }
-  .nav-inner{max-width:1200px;padding:18px 24px;}
-  .logo{
-    font-family:Inter,system-ui,sans-serif;
-    font-size:15px;font-weight:600;letter-spacing:.02em;color:var(--rk-frost);
-  }
-  .logo-mark{
-    width:8px;height:8px;background:#d8ecf8;
-    box-shadow:0 0 18px rgba(182,217,252,.8);
-  }
-  .nav-links{gap:6px;}
-  .nav-links a{
-    padding:8px 14px;border-radius:999px;font-size:13px;color:#9da7ba;
-    border:1px solid transparent;
-    transition:background .2s ease,color .2s ease,box-shadow .2s ease;
-  }
-  .nav-links a:hover,.nav-links a.active{
-    color:#fff;background:rgba(186,214,247,.06);
-    box-shadow:inset 0 1px 0 rgba(216,236,248,.12);
-  }
-  .nav .btn-primary{
-    display:inline-flex;
-    border-radius:999px;padding:9px 16px;
-    background:rgba(186,214,247,.06);color:#fff;
-    border:1px solid rgba(186,215,247,.12);
-    box-shadow:inset 0 1px 0 rgba(216,236,248,.12);
-  }
-  .nav .btn-primary:hover{background:rgba(186,214,247,.12);}
-  .btn{border-radius:999px;}
-  .btn-primary{
-    background:rgba(186,214,247,.06);color:#fff;
-    border:1px solid rgba(186,215,247,.12);
-    box-shadow:inset 0 1px 0 rgba(216,236,248,.12),0 0 24px rgba(102,58,243,.08);
-  }
-  .btn-primary:hover{background:rgba(186,214,247,.12);}
-  .btn-outline{
-    background:transparent;border:1px solid rgba(186,215,247,.12);color:var(--rk-frost);
-  }
-  .btn-outline:hover{background:rgba(186,214,247,.06);border-color:rgba(186,215,247,.2);}
-
-  .rk-home{position:relative;overflow:hidden;background:var(--rk-bg);}
-  .rk-hero{
-    min-height:calc(100vh - 70px);position:relative;display:flex;align-items:flex-start;
-    overflow:hidden;padding:72px 0 96px;
-  }
-  .rk-hero-grid{
-    position:absolute;inset:0;opacity:.7;pointer-events:none;
-    background-image:
-      linear-gradient(rgba(186,215,247,.045) 1px,transparent 1px),
-      linear-gradient(90deg,rgba(186,215,247,.045) 1px,transparent 1px);
-    background-size:96px 96px;
-    mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.8) 58%,transparent 100%);
-    -webkit-mask-image:linear-gradient(to bottom,black 0%,rgba(0,0,0,.8) 58%,transparent 100%);
-  }
-  .rk-hero-spotlight{
-    position:absolute;width:min(900px,90vw);height:620px;top:-360px;left:50%;transform:translateX(-50%);
-    border-radius:50%;
-    background:radial-gradient(circle,rgba(124,145,182,.30) 0%,rgba(124,145,182,.10) 34%,transparent 70%);
-    filter:blur(10px);pointer-events:none;
-  }
-  .rk-hero-inner{position:relative;z-index:1;}
-  .rk-eyebrow,.rk-section-label{
-    display:flex;align-items:center;justify-content:center;gap:14px;
-    color:var(--rk-moon);font-family:'JetBrains Mono','IBM Plex Mono',monospace;
-    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-  }
-  .rk-eyebrow span,.rk-section-label span{
-    height:1px;width:72px;background:linear-gradient(90deg,transparent,rgba(186,215,247,.15));
-  }
-  .rk-eyebrow span:last-child,.rk-section-label span:last-child{
-    background:linear-gradient(90deg,rgba(186,215,247,.15),transparent);
-  }
-  .rk-hero-title-wrap{max-width:900px;margin:28px auto 0;text-align:center;}
-  .rk-status-pill{
-    display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;
-    background:rgba(186,214,247,.045);box-shadow:inset 0 1px 0 rgba(216,236,248,.12);
-    color:var(--rk-moon);font-size:12px;
-  }
-  .rk-status-dot{width:6px;height:6px;border-radius:50%;background:#b6d9fc;box-shadow:0 0 12px rgba(182,217,252,.8);}
-  .rk-display{
-    margin:24px auto 0;font-family:'Space Grotesk',Inter,sans-serif;font-size:clamp(56px,8.7vw,112px);
-    line-height:.98;letter-spacing:-.055em;font-weight:500;
-    color:transparent;background:linear-gradient(180deg,#d8ecf8 0%,#c7d3ea 42%,#98c0ef 100%);
-    -webkit-background-clip:text;background-clip:text;
-    text-wrap:balance;
-  }
-  .rk-display em,.rk-section-intro h2 em,.rk-builder-copy h2 em,.rk-final h2 em{
-    font-style:normal;color:transparent;
-    background:linear-gradient(180deg,#d8ecf8 0%,#98c0ef 100%);
-    -webkit-background-clip:text;background-clip:text;
-  }
-  .rk-hero-copy{
-    max-width:650px;margin:28px auto 0;color:var(--rk-moon);font-size:17px;line-height:1.7;
-  }
-  .rk-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:30px;}
-  .rk-pill{
-    display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:10px 18px;
-    border-radius:999px;text-decoration:none;font-size:14px;font-weight:500;
-    transition:transform .2s ease,background .2s ease,box-shadow .2s ease;
-  }
-  .rk-pill:hover{transform:translateY(-1px);}
-  .rk-pill-primary{
-    color:#fff;background:var(--rk-violet);
-    box-shadow:0 0 34px rgba(102,58,243,.26),inset 0 1px 0 rgba(255,255,255,.18);
-  }
-  .rk-pill-primary:hover{background:#734df5;box-shadow:0 0 42px rgba(102,58,243,.38);}
-  .rk-pill-ghost{
-    color:#d1e4fa;background:rgba(186,214,247,.045);
-    box-shadow:inset 0 1px 0 rgba(216,236,248,.12);
-  }
-  .rk-pill-ghost:hover{background:rgba(186,214,247,.09);}
-  .rk-arrow{font-size:16px;}
-  .rk-trust-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:24px;color:#8491a5;font-size:12px;}
-  .rk-trust-row b{color:#c7d3ea;font-weight:500;letter-spacing:.06em;}
-  .rk-sep{width:3px;height:3px;border-radius:50%;background:#596679;}
-
-  .rk-hero-stage{
-    position:relative;max-width:980px;height:360px;margin:72px auto 0;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .rk-console-card{
-    position:relative;width:min(680px,86vw);border-radius:16px;
-    background:rgba(5,6,15,.84);overflow:hidden;
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.2),inset 0 24px 48px rgba(168,216,245,.06),0 30px 80px rgba(0,0,0,.42),0 0 80px rgba(102,58,243,.08);
-    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  }
-  .rk-console-top,.rk-console-footer{
-    display:flex;align-items:center;gap:12px;padding:13px 16px;color:#8e9bb0;font:11px 'JetBrains Mono',monospace;
-    border-bottom:1px solid rgba(186,215,247,.07);
-  }
-  .rk-console-footer{justify-content:space-between;border-top:1px solid rgba(186,215,247,.07);border-bottom:0;}
-  .rk-console-footer a{color:#d1e4fa;text-decoration:none;}
-  .rk-window-dots{display:flex;gap:5px;margin-right:5px;}
-  .rk-window-dots i{width:6px;height:6px;border-radius:50%;background:#4f5b6e;}
-  .rk-console-live{margin-left:auto;color:#c7d3ea;letter-spacing:.1em;}
-  .rk-console-body{padding:22px 22px 18px;font:13px/1.8 'JetBrains Mono',monospace;color:#d1e4fa;}
-  .rk-code-line{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .rk-ln{display:inline-block;width:30px;color:#465265;user-select:none;}
-  .rk-c1{color:#b6d9fc}.rk-c2{color:#d8ecf8}.rk-muted{color:#8290a3;}
-  .rk-find-line{
-    margin-top:18px;padding:10px 12px;border-radius:6px;background:rgba(199,211,234,.05);
-    box-shadow:inset 0 1px 0 rgba(186,215,247,.10);color:#c7d3ea;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  }
-  .rk-severity{color:#fff;background:rgba(102,58,243,.8);padding:3px 7px;border-radius:5px;font-size:10px;letter-spacing:.08em;margin-right:8px;}
-  .rk-floating-card{
-    position:absolute;width:210px;padding:18px;border-radius:16px;background:rgba(186,214,247,.035);
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.18),inset 0 24px 48px rgba(168,216,245,.035),0 24px 50px rgba(0,0,0,.3);
-    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-align:left;
-  }
-  .rk-card-left{left:0;top:38px;transform:rotate(-3deg);}
-  .rk-card-right{right:0;bottom:30px;transform:rotate(3deg);}
-  .rk-card-kicker,.rk-feature-kicker{font:10px 'JetBrains Mono',monospace;letter-spacing:.12em;color:#8794a8;}
-  .rk-card-value{margin-top:12px;color:#d8ecf8;font-size:13px;}
-  .rk-pulse{display:inline-block;width:6px;height:6px;border-radius:50%;background:#b6d9fc;box-shadow:0 0 12px rgba(182,217,252,.9);margin-right:7px;}
-  .rk-mini-line{height:1px;background:rgba(186,215,247,.1);margin:15px 0 10px;}
-  .rk-mini-muted{font-size:11px;color:#7f8ca0;line-height:1.5;}
-  .rk-review-row{margin-top:10px;color:#c7d3ea;font-size:12px;}
-  .rk-check{color:#d8ecf8;margin-right:6px;}
-
-  .rk-section{padding:120px 0;border-top:1px solid rgba(186,215,247,.05);}
-  .rk-section-intro{display:grid;grid-template-columns:1.15fr .85fr;gap:70px;margin-top:32px;align-items:end;}
-  .rk-section-intro h2,.rk-workflow-head h2,.rk-builder-copy h2,.rk-final h2{
-    font-family:'Space Grotesk',Inter,sans-serif;font-size:clamp(34px,5vw,56px);line-height:1.08;letter-spacing:-.04em;font-weight:500;
-  }
-  .rk-section-intro p,.rk-workflow-head p,.rk-builder-copy p,.rk-final p{color:#9da7ba;font-size:16px;line-height:1.7;max-width:520px;}
-  .rk-feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:58px;}
-  .rk-feature-card{
-    min-height:290px;padding:24px;border-radius:16px;background:rgba(186,214,247,.025);
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.16),inset 0 24px 48px rgba(168,216,245,.025),0 20px 50px rgba(0,0,0,.2);
-    transition:transform .25s ease,background .25s ease;
-  }
-  .rk-feature-card:hover{transform:translateY(-4px);background:rgba(186,214,247,.04);}
-  .rk-icon{
-    width:52px;height:52px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
-    background:rgba(186,214,247,.05);box-shadow:inset 0 1px 0 rgba(216,236,248,.15);
-    color:#d1e4fa;font:12px 'JetBrains Mono',monospace;margin-bottom:44px;
-  }
-  .rk-feature-card h3{margin-top:10px;font-size:20px;line-height:1.2;font-weight:500;color:#d8ecf8;}
-  .rk-feature-card p{margin-top:12px;color:#9da7ba;font-size:14px;line-height:1.6;}
-  .rk-feature-tag{
-    display:inline-flex;margin-top:22px;padding:4px 8px;border-radius:6px;background:rgba(199,211,234,.08);
-    color:#b6c4d8;font:10px 'JetBrains Mono',monospace;letter-spacing:.08em;
-  }
-
-  .rk-workflow{background:linear-gradient(180deg,rgba(186,214,247,.012),transparent);}
-  .rk-workflow-head{display:grid;grid-template-columns:1.2fr .8fr;gap:60px;margin-top:32px;}
-  .rk-steps{margin-top:58px;border-top:1px solid rgba(186,215,247,.1);}
-  .rk-step{
-    display:grid;grid-template-columns:110px 1fr;gap:24px;padding:30px 0;border-bottom:1px solid rgba(186,215,247,.08);
-  }
-  .rk-step-num{font:11px 'JetBrains Mono',monospace;letter-spacing:.1em;color:#6f7d91;}
-  .rk-step h3{font-size:20px;font-weight:500;color:#d8ecf8;}
-  .rk-step p{margin-top:7px;color:#9da7ba;font-size:14px;max-width:620px;}
-
-  .rk-builder-panel{
-    margin-top:48px;padding:34px;border-radius:16px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
-    background:rgba(186,214,247,.025);
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.16),inset 0 24px 48px rgba(168,216,245,.025),0 24px 60px rgba(0,0,0,.25);
-  }
-  .rk-builder-copy h2{font-size:clamp(32px,4vw,48px);margin-top:14px;}
-  .rk-builder-copy p{margin-top:16px;}
-  .rk-builder-tools{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-  .rk-builder-tools span{
-    padding:18px 20px;border-radius:16px;background:rgba(186,214,247,.035);
-    box-shadow:inset 0 1px 0 rgba(216,236,248,.1);color:#c7d3ea;font-size:14px;
-  }
-  .rk-builder-tools span:last-child{grid-column:span 2;}
-
-  .rk-final{padding:150px 0 170px;position:relative;overflow:hidden;text-align:center;}
-  .rk-final::before{
-    content:'';position:absolute;width:700px;height:400px;left:50%;top:0;transform:translateX(-50%);
-    background:radial-gradient(circle,rgba(124,145,182,.16),transparent 68%);pointer-events:none;
-  }
-  .rk-final-inner{position:relative;z-index:1;}
-  .rk-final h2{margin-top:30px;font-size:clamp(48px,7vw,84px);}
-  .rk-final p{margin:22px auto 0;}
-  .rk-actions-center{margin-top:28px;}
-
-  /* Use the AuthKit rhythm on existing non-home pages too. */
-  .section{border-bottom:1px solid rgba(186,215,247,.05);}
-  .section-head h2{font-family:'Space Grotesk',Inter,sans-serif;font-weight:500;color:#d8ecf8;}
-  .section-head p{color:#9da7ba;}
-  .eyebrow{color:#c7d3ea;font-family:'JetBrains Mono',monospace;letter-spacing:.1em;}
-  .eyebrow::before{background:rgba(186,215,247,.18);}
-  .card,.coverage-card,.scanner,.rule-card,.roadmap-card{
-    background:rgba(186,214,247,.025)!important;
-    border:0!important;border-radius:16px!important;
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.15),inset 0 24px 48px rgba(168,216,245,.025),0 18px 50px rgba(0,0,0,.22)!important;
-  }
-  .chat-bubble,.chat-input-row,.chat-composer{
-    background:rgba(186,214,247,.025)!important;
-    border:0!important;
-    box-shadow:inset 0 1px 1px rgba(216,236,248,.12),inset 0 20px 40px rgba(168,216,245,.02)!important;
-  }
-  .chat-send{background:var(--rk-violet)!important;border:0!important;box-shadow:0 0 24px rgba(102,58,243,.3)!important;}
-  .chat-attach{background:rgba(186,214,247,.04)!important;border:0!important;box-shadow:inset 0 1px 0 rgba(216,236,248,.12);}
-  .chat-textarea,.scanner textarea,.scanner input,.cta-form input[type=email]{
-    background:rgba(199,211,234,.045)!important;border:0!important;
-    box-shadow:inset 0 0 0 1px rgba(186,215,247,.10)!important;color:#fff!important;
-    border-radius:6px!important;
-  }
-
-  @media(max-width:900px){
-    .rk-section-intro,.rk-workflow-head,.rk-builder-panel{grid-template-columns:1fr;gap:30px;}
-    .rk-feature-grid{grid-template-columns:1fr;}
-    .rk-feature-card{min-height:0;}
-    .rk-hero-stage{height:330px;margin-top:54px;}
-    .rk-floating-card{display:none;}
-  }
-  @media(max-width:640px){
-    .nav-inner{padding:12px 16px;}
-    .rk-hero{padding:56px 0 76px;min-height:auto;}
-    .rk-eyebrow{font-size:9px;gap:8px;}
-    .rk-eyebrow span{width:26px;}
-    .rk-display{font-size:clamp(48px,15vw,72px);}
-    .rk-hero-copy{font-size:15px;}
-    .rk-trust-row{flex-wrap:wrap;gap:8px 12px;}
-    .rk-sep{display:none;}
-    .rk-hero-stage{height:260px;margin-top:42px;}
-    .rk-console-card{width:100%;}
-    .rk-console-body{padding:16px;font-size:10px;}
-    .rk-section{padding:86px 0;}
-    .rk-section-label{font-size:9px;gap:8px;}
-    .rk-section-label span{width:26px;}
-    .rk-section-intro h2,.rk-workflow-head h2{font-size:36px;}
-    .rk-step{grid-template-columns:54px 1fr;gap:12px;}
-    .rk-builder-panel{padding:24px;}
-    .rk-builder-tools{grid-template-columns:1fr;}
-    .rk-builder-tools span:last-child{grid-column:auto;}
-    .rk-final{padding:110px 0 130px;}
-    .rk-final h2{font-size:50px;}
-  }
-
 </style>
 </head>
 <body>
 
   <nav class="nav" id="siteNav">
     <div class="nav-inner">
-      <a href="#/about" class="logo" data-nav><span class="logo-mark"></span><span>redline</span></a>
+      <a href="#/" class="logo" data-nav><span class="logo-mark"></span>redline</a>
       <div class="nav-links" id="navLinks">
-        <a href="#/about" data-nav data-page="about">About</a>
-        <a href="#/scan" data-nav data-page="scan">Scan</a>
-        <a href="#/chat" data-nav data-page="chat">AI assistant</a>
+        <a href="#/" data-nav data-page="chat">Chat</a>
+        <a href="#/scan" data-nav data-page="scan">Full scan report</a>
         <a href="#/rules" data-nav data-page="rules">Detection rules</a>
         <a href="#/roadmap" data-nav data-page="roadmap">Roadmap</a>
+        <a href="#/about" data-nav data-page="about">About</a>
       </div>
       <a href="#/scan" class="btn btn-primary" data-nav>Full report</a>
       <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks"><span></span></button>
     </div>
   </nav>
 
-  <!-- ============ AI ASSISTANT ============ -->
+  <!-- ============ CHAT (default landing) ============ -->
   <div class="page active" data-page="chat">
     <div class="chat-shell">
       <div class="chat-messages" id="chatMessages">
@@ -819,182 +549,100 @@
     </div>
   </div>
 
-  <!-- ============ ABOUT / HOMEPAGE ============ -->
+  <!-- ============ ABOUT (old marketing home) ============ -->
   <div class="page" data-page="about">
-    <main class="rk-home">
-      <section class="rk-hero">
-        <div class="rk-hero-grid"></div>
-        <div class="rk-hero-spotlight"></div>
-        <div class="wrap rk-hero-inner">
-          <div class="rk-eyebrow"><span></span> REDLINE SECURITY REVIEW <span></span></div>
-
-          <div class="rk-hero-title-wrap">
-            <div class="rk-status-pill">
-              <span class="rk-status-dot"></span>
-              Security review for AI-built software
-            </div>
-            <h1 class="rk-display">Ship the idea.<br><em>Secure the code.</em></h1>
-            <p class="rk-hero-copy">
-              Redline finds the security mistakes AI coding tools can leave behind —
-              exposed secrets, weak authorization, unsafe input handling and more —
-              before they become production problems.
-            </p>
-
-            <div class="rk-actions">
-              <a href="#/scan" class="rk-pill rk-pill-primary" data-nav>
-                Start a free scan
-                <span class="rk-arrow">↗</span>
-              </a>
-              <a href="#/chat" class="rk-pill rk-pill-ghost" data-nav>
-                Open AI assistant
-              </a>
-            </div>
-
-            <div class="rk-trust-row">
-              <span><b>LOCAL</b> scanning</span>
-              <span class="rk-sep"></span>
-              <span><b>19</b> detection rules</span>
-              <span class="rk-sep"></span>
-              <span><b>NO</b> signup</span>
-            </div>
+    <section class="hero wrap">
+      <div class="hero-grid">
+        <div>
+          <div class="eyebrow">For vibe-coded apps</div>
+          <h1>Ship fast with Lovable or Bolt.<br>Don't ship <span class="hl">their mistakes</span>.</h1>
+          <p class="hero-sub">Redline scans the app your AI builder generated and flags the exact patterns that get vibe-coded apps breached — exposed keys, missing auth, trusted client input — before you launch.</p>
+          <div class="hero-ctas">
+            <a href="#/scan" class="btn btn-primary" data-nav>Scan your code — free</a>
+            <a href="#/rules" class="btn btn-outline" data-nav>See what it checks for</a>
           </div>
-
-          <div class="rk-hero-stage">
-            <div class="rk-floating-card rk-card-left">
-              <div class="rk-card-kicker">DETECTOR STATUS</div>
-              <div class="rk-card-value"><span class="rk-pulse"></span> 19 rules active</div>
-              <div class="rk-mini-line"></div>
-              <div class="rk-mini-muted">Secrets · Auth · Injection · Trust</div>
-            </div>
-
-            <div class="rk-console-card">
-              <div class="rk-console-top">
-                <div class="rk-window-dots"><i></i><i></i><i></i></div>
-                <span>redline / security-review</span>
-                <span class="rk-console-live">LIVE</span>
-              </div>
-              <div class="rk-console-body">
-                <div class="rk-code-line"><span class="rk-ln">01</span><span class="rk-c1">POST</span> <span class="rk-c2">/api/checkout</span></div>
-                <div class="rk-code-line"><span class="rk-ln">02</span><span class="rk-muted">const</span> amount = req.body.amount</div>
-                <div class="rk-code-line"><span class="rk-ln">03</span><span class="rk-muted">await</span> createOrder(amount)</div>
-                <div class="rk-code-line"><span class="rk-ln">04</span><span class="rk-muted">return</span> res.json({ ok: true })</div>
-                <div class="rk-find-line">
-                  <span class="rk-severity">HIGH</span>
-                  Client-controlled value reaches a trusted operation
-                </div>
-              </div>
-              <div class="rk-console-footer">
-                <span>FINDING #02</span>
-                <a href="#/scan" data-nav>Review finding →</a>
-              </div>
-            </div>
-
-            <div class="rk-floating-card rk-card-right">
-              <div class="rk-card-kicker">AI REVIEW</div>
-              <div class="rk-review-row"><span class="rk-check">✓</span> Evidence grounded</div>
-              <div class="rk-review-row"><span class="rk-check">✓</span> Minimal fix</div>
-              <div class="rk-review-row"><span class="rk-check">✓</span> Verification step</div>
-            </div>
+          <div class="hero-flags">
+            <span class="flag"><span class="dot"></span>No signup</span>
+            <span class="flag"><span class="dot"></span>Nothing stored server-side</span>
+            <span class="flag"><span class="dot"></span>Works on pasted code, a repo, or files</span>
           </div>
         </div>
-      </section>
-
-      <section class="rk-section wrap">
-        <div class="rk-section-label"><span></span> WHY REDLINE <span></span></div>
-        <div class="rk-section-intro">
-          <h2>AI can build the feature.<br><em>Redline reviews the trust boundary.</em></h2>
-          <p>Fast builders optimize for shipping. Redline adds a security-focused review layer that asks the questions a generated codebase often misses.</p>
-        </div>
-
-        <div class="rk-feature-grid">
-          <article class="rk-feature-card">
-            <div class="rk-icon">01</div>
-            <div class="rk-feature-kicker">SECRETS</div>
-            <h3>Catch credentials before they ship</h3>
-            <p>Detect hardcoded API keys, tokens and sensitive configuration patterns hiding in client or server code.</p>
-            <span class="rk-feature-tag">EXPOSURE</span>
-          </article>
-
-          <article class="rk-feature-card">
-            <div class="rk-icon">02</div>
-            <div class="rk-feature-kicker">AUTHORIZATION</div>
-            <h3>Find routes that trust the caller</h3>
-            <p>Surface missing authorization checks and server-side trust mistakes around privileged operations.</p>
-            <span class="rk-feature-tag">ACCESS CONTROL</span>
-          </article>
-
-          <article class="rk-feature-card">
-            <div class="rk-icon">03</div>
-            <div class="rk-feature-kicker">INPUT TRUST</div>
-            <h3>Question values coming from the browser</h3>
-            <p>Flag dangerous patterns where client-controlled values influence prices, queries, commands or sensitive state.</p>
-            <span class="rk-feature-tag">VALIDATION</span>
-          </article>
-        </div>
-      </section>
-
-      <section class="rk-section rk-workflow">
-        <div class="wrap">
-          <div class="rk-section-label"><span></span> THE WORKFLOW <span></span></div>
-          <div class="rk-workflow-head">
-            <div>
-              <h2>From code to confidence<br>in three deliberate steps.</h2>
-            </div>
-            <p>Use Redline as a lightweight security gate while you build — not as a complicated enterprise process you have to learn first.</p>
+        <div class="coverage-card">
+          <div class="ct-head">
+            <span class="ct-title">what it looks for</span>
+            <span class="ct-count" id="ruleCountTag">19 detectors</span>
           </div>
-
-          <div class="rk-steps">
-            <div class="rk-step">
-              <span class="rk-step-num">01</span>
-              <div>
-                <h3>Bring the code</h3>
-                <p>Paste a snippet, upload files or point Redline at a public GitHub repository.</p>
-              </div>
-            </div>
-            <div class="rk-step">
-              <span class="rk-step-num">02</span>
-              <div>
-                <h3>Review the evidence</h3>
-                <p>Pattern-based detectors rank findings and show the exact code context behind each result.</p>
-              </div>
-            </div>
-            <div class="rk-step">
-              <span class="rk-step-num">03</span>
-              <div>
-                <h3>Fix and verify</h3>
-                <p>Use the AI assistant for explanations and fix suggestions, then rescan to confirm the change.</p>
-              </div>
-            </div>
-          </div>
+          <div class="chip-grid" id="homeChips"></div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section class="rk-section wrap">
-        <div class="rk-section-label"><span></span> BUILT FOR MODERN BUILDERS <span></span></div>
-        <div class="rk-builder-panel">
-          <div class="rk-builder-copy">
-            <div class="rk-card-kicker">SECURITY LAYER</div>
-            <h2>Keep the speed.<br><em>Add the review.</em></h2>
-            <p>Redline fits beside the tools you already use instead of asking you to rebuild your workflow around security.</p>
-          </div>
-          <div class="rk-builder-tools">
-            <span>Lovable</span><span>Bolt</span><span>Replit</span><span>v0</span><span>Cursor</span>
-          </div>
-        </div>
-      </section>
+    <section class="section-tight wrap">
+      <div class="logos-row">
+        <span>Built for apps from</span>
+        <span>Lovable</span><span>Bolt.new</span><span>Replit Agent</span><span>v0</span><span>Cursor</span>
+      </div>
+    </section>
 
-      <section class="rk-final">
-        <div class="wrap rk-final-inner">
-          <div class="rk-section-label"><span></span> START HERE <span></span></div>
-          <h2>Before you ship,<br><em>run the redline.</em></h2>
-          <p>Free local scanning. No signup. Clear findings. A security review designed for the way modern software gets built.</p>
-          <div class="rk-actions rk-actions-center">
-            <a href="#/scan" class="rk-pill rk-pill-primary" data-nav>Start scanning <span class="rk-arrow">↗</span></a>
-            <a href="#/rules" class="rk-pill rk-pill-ghost" data-nav>Explore detection rules</a>
-          </div>
+    <section class="section wrap" id="problem">
+      <div class="section-head">
+        <div class="eyebrow">Why it matters</div>
+        <h2>AI builders are great at features. They don't ask about auth.</h2>
+        <p>They optimize for "it works." Nobody's job in that loop is to ask who's allowed to call this route, or where that key ends up.</p>
+      </div>
+      <div class="cards">
+        <div class="card c-crit">
+          <div class="icon">!</div>
+          <h3>Keys ship in the bundle</h3>
+          <p>Service-role keys and live API secrets get hardcoded because that's the fastest path to "it works" — and it does, right up until someone reads your client JS.</p>
         </div>
-      </section>
-    </main>
+        <div class="card c-warn">
+          <div class="icon">?</div>
+          <h3>Routes trust whoever calls them</h3>
+          <p>Checkout, admin, and account routes get generated without an auth check, because the prompt never mentioned one.</p>
+        </div>
+        <div class="card c-safe">
+          <div class="icon">$</div>
+          <h3>Prices come from the client</h3>
+          <p>Amounts, roles, and quantities get read straight from the request body and trusted, because recomputing them server-side is a whole extra step.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section wrap" id="how">
+      <div class="section-head">
+        <div class="eyebrow">How it works</div>
+        <h2>Paste, link, or upload. Get a ranked report back.</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="num">01</div>
+          <h3>Give it your code</h3>
+          <p>Paste a snippet, drop in a public GitHub repo URL, or upload files straight from your machine.</p>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <h3>It runs the detector set</h3>
+          <p>19 pattern-based checks run against every file — secrets, injection, auth gaps, and more — for real, not a canned demo.</p>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <h3>You get a ranked report</h3>
+          <p>Findings sorted critical-first, with a plain-English explanation and a confidence tag on each one.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section cta-section wrap" style="border-bottom:none;">
+      <div class="eyebrow" style="justify-content:center;">Private beta</div>
+      <h2 style="font-size:clamp(24px,4vw,32px);">Want it wired into your GitHub PRs?</h2>
+      <p style="color:var(--text-dim); margin-top:10px;">The scanner below is free and live right now. Leave your email if you want the CI-integrated version first.</p>
+      <form class="cta-form" id="ctaForm">
+        <input type="email" id="ctaEmail" placeholder="you@yourstartup.com" required />
+        <button class="btn btn-primary" type="submit">Get early access</button>
+      </form>
+      <div class="form-msg" id="ctaMsg"></div>
+    </section>
   </div>
 
   <!-- ============ SCAN ============ -->
@@ -1036,7 +684,7 @@ app.post('/checkout', async (req, res) => {
             <div class="file-list" id="fileList"></div>
           </div>
           <div class="scanner-actions">
-            <button class="btn btn-primary" id="scanBtn" type="button">Run scan</button>
+            <button class="btn btn-cta" id="scanBtn" type="button">Run scan</button>
             <span class="scanner-status" id="scanStatus"></span>
           </div>
           <div class="history-row" id="historyRow"></div>
@@ -1192,8 +840,8 @@ app.post('/checkout', async (req, res) => {
   function routeFromHash(){
     var h = (location.hash || '#/').replace('#/', '').replace('#', '');
     var valid = ['chat','scan','rules','roadmap','about'];
-    var name = h === '' ? 'about' : h;
-    if (valid.indexOf(name) === -1) name = 'about';
+    var name = h === '' ? 'chat' : h;
+    if (valid.indexOf(name) === -1) name = 'chat';
     showPage(name);
   }
   window.addEventListener('hashchange', routeFromHash);
