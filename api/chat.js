@@ -664,7 +664,7 @@ function scanText(filename, text) {
 }
 
 // ---------- config ----------
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const MAX_FILE_CHARS = 20000;
 const MAX_HISTORY_TURNS = 20; // most recent N turns kept, older ones dropped

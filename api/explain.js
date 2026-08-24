@@ -8,7 +8,7 @@
 // If it isn't set, this endpoint returns a clear error instead of crashing,
 // and the rest of the scanner keeps working with zero AI involvement.
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const MAX_SNIPPET_CHARS = 2000; // keep prompts small — this is a free-tier key
