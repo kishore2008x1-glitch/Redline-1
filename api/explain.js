@@ -10,9 +10,11 @@
 // Optional:
 // GEMINI_MODEL=gemini-3.7-flash
 
-const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || 'gemini-3.7-flash';
-
+const GEMINI_MODELS = [
+  process.env.GEMINI_MODEL || 'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash'
+];
 const GEMINI_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
