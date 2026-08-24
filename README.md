@@ -1,36 +1,68 @@
 # Redline — working prototype
 
-A real, free, full-stack prototype: static SPA frontend + one self-contained
-Vercel serverless function. No paid API, no API key, no framework build step.
+A real, mostly-free, full-stack prototype: static SPA frontend + three
+self-contained Vercel serverless functions.
 
 ## Pages (client-side hash routing, single index.html)
 
-- `#/` — marketing home, with a live "what it checks for" chip list
-- `#/scan` — the actual scanner: paste code, point at a public GitHub repo,
-  or upload/drag files. Real results, grade badge (A–F), severity filters,
-  copy/download report, and a local (localStorage) recent-scans history.
-- `#/rules` — all 21 detection rules in plain English, generated from the
-  same list the scan page uses to render its "what it checks for" chips.
-- `#/roadmap` — honest framing of what this prototype is (pattern matching)
-  vs. what a real product needs next (verification, fixes, regression checks).
+- `#/` — **Chat** (default landing). Attach a file or paste code, get scanned
+  for real, then ask follow-up questions — "how do I fix #2?", "is this
+  actually exploitable?" — with full conversation context.
+- `#/scan` — the detailed scanner: paste code, a public GitHub repo, or
+  upload/drag multiple files at once. Grade badge (A–F), severity filters,
+  copy/download report, local scan history, per-finding "Suggest fix (AI)".
+- `#/rules` — all 21 detection rules in plain English
+- `#/roadmap` — honest framing of what this is (pattern matching) vs. what a
+  real product needs next
+- `#/about` — the original marketing page
 
-## Backend (`api/scan.js`)
+## Backend
 
-One self-contained Vercel serverless function — no cross-file `require`,
-so nothing can go missing between your machine and Vercel's build. It:
+### `api/scan.js` — the core scanner (100% free, no key needed)
 
-- Runs 21 pattern-based rules (secrets, SQL injection incl. Python and
-  indirect forms, XSS incl. Flask template strings, command injection, path
-  traversal, SSRF, missing auth incl. Python routes, IDOR, mass assignment,
-  trusting client input, insecure deserialization, weak crypto/disabled TLS,
-  debug mode, CORS wildcard, dynamic code execution, no rate limiting,
-  committed `.env` files).
-- For a GitHub URL: pulls the repo's file tree via GitHub's free public API
-  (no key, 60 req/hr/IP) and scans up to 25 files (~450KB budget).
-- For uploaded files: scans whatever the browser read client-side and sent
-  up (25 files / ~600KB budget).
-- Every branch is wrapped so it always returns valid JSON — even an
-  unexpected error returns `{"error": "..."}` instead of Vercel's crash page.
+21 pattern-based rules, zero external calls except GitHub's free public API
+for repo mode (no key, 60 req/hr/IP). Always returns valid JSON.
+
+### `api/chat.js` — the conversational scanner (needs a Gemini key for Q&A)
+
+Runs the **same rule engine** as `scan.js` (duplicated on purpose — no
+cross-file `require()`, so nothing can go missing on deploy) against any
+attached file. That scan always runs, free, whether or not Gemini is
+configured. Gemini is only used for:
+- Free-form security/coding questions with no file attached
+- Conversational answers grounded in that scan's findings ("fix #2", "is
+  this real or a false positive")
+
+**Without `GEMINI_API_KEY` set:** attaching a file still returns real
+findings and a grade, formatted as plain text — you just can't ask
+follow-ups, and a bare question with no file returns a clear message telling
+you to configure the key or attach a file instead. Nothing crashes either way.
+
+### `api/explain.js` — one-off AI fix suggestions (needs the same Gemini key)
+
+The "Suggest fix (AI)" button on the `/scan` page's detailed report — sends
+just that one finding's snippet to Gemini, only when clicked.
+
+**Setup (optional — everything else works without it):**
+
+```bash
+vercel env add GEMINI_API_KEY
+# paste your key when prompted — never put it in any file in this repo
+vercel --prod
+```
+
+Get a key at [Google AI Studio](https://aistudio.google.com/apikey) (free
+tier, no card). **If a key is ever pasted into a chat, doc, or public repo,
+treat it as compromised and regenerate it there** — rotating a key is cheap;
+a leaked live key is not.
+
+Model used: `gemini-flash-latest` by default (Google's auto-updating alias
+for the current stable Flash model) — override with a `GEMINI_MODEL` env var
+if you want to pin a specific version.
+
+Both AI endpoints share a crude in-memory rate limit (20 req/min per warm
+serverless instance) to protect the free-tier quota; it resets on cold start
+since there's no shared store in this prototype.
 
 ## Deploy
 
@@ -40,31 +72,40 @@ cd redline
 vercel --prod
 ```
 
-No environment variables required. Deploy the **whole folder** (`index.html`,
-`package.json`, `api/scan.js` together) — the CLI run from inside `redline/`
-is what keeps the structure intact; don't drag a single file into the
-dashboard.
+Deploy the **whole folder** (`index.html`, `package.json`, `api/scan.js`,
+`api/chat.js`, `api/explain.js` together) from inside `redline/` — don't drag
+a single file into the dashboard, and don't replace files individually in an
+existing repo; overwrite everything at once so nothing is left mismatched.
 
-## Verified locally before shipping
+## Verified locally before shipping (no live browser available in this sandbox)
 
-- `node --check api/scan.js` — no syntax errors
-- Full mock request/response run through the handler for `code`, `files`,
-  and `repo` modes, plus edge cases (GET, missing body, malformed JSON, bad
-  repo URL) — every path returns clean JSON, nothing throws
-- Sample vulnerable snippets for XSS, command injection, path traversal, and
-  Python deserialization each correctly triggered their rule
-- Clean, properly-secured code produces zero findings (no false positives
-  on the negative test case)
-- Every DOM id referenced by the frontend script exists in the HTML; the
-  inline `<script>` block passes `node --check`; all major tags balance
+- `node --check` on all three API files — no syntax errors
+- Full mock request/response run through `api/chat.js` and `api/explain.js`,
+  including: no API key + file attached (graceful local-scan fallback), no
+  key + no file (clear 501), malformed file object, empty body, GET request
+- A realistic two-turn conversation simulated with the exact payload shape
+  the frontend sends (file scan → follow-up question), confirming the
+  request/response contract matches on both ends
+- Sample vulnerable snippets (secrets, XSS, command injection, path
+  traversal, Python deserialization) each correctly triggered their rule via
+  `api/scan.js`; clean code produces zero false positives
+- Every DOM id referenced by the frontend script exists in the HTML, the
+  inline `<script>` passes `node --check`, and all major HTML tags balance
+- **Not verified:** an actual live call to the Gemini API, and real-browser/
+  real-device rendering — this sandbox has no network access and no browser.
+  Test both after deploying; check Vercel's function logs if `/api/chat` or
+  `/api/explain` error.
 
 ## Known limits (prototype, not production)
 
-- Pattern matching, not a real SAST engine — it favors recall, so treat
-  findings as candidates to review, not proven vulnerabilities.
+- Pattern matching, not a real SAST engine — findings are candidates to
+  review, not proven vulnerabilities (a couple of the sample tests above
+  show it erring toward false positives over false negatives, by design).
 - GitHub's unauthenticated rate limit (60 req/hr/IP) will start failing
-  under heavy repo-mode traffic; the API returns a clear error when this
-  happens.
-- Only public repos can be scanned (no OAuth flow in this prototype).
-- Scan history is stored in the visitor's own browser (localStorage) —
-  nothing is persisted server-side, and nothing is shared between devices.
+  under heavy repo-mode traffic.
+- Only public repos can be scanned (no OAuth flow).
+- Chat history lives in browser memory only — refreshing the page clears it;
+  scan history on the `/scan` page persists via localStorage instead.
+- Chat file attachments are capped at ~200KB to keep the free Gemini calls
+  fast and cheap; the detailed `/scan` page's upload tab handles larger/
+  multi-file scans without any AI involved.

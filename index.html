@@ -189,6 +189,83 @@
   .form-msg{ margin-top:12px; font-size:13px; color: var(--safe); min-height:18px; }
 
   /* ---------- SCANNER ---------- */
+  /* ---------- CHAT ---------- */
+  .chat-shell{
+    display:flex; flex-direction:column; height: calc(100dvh - 66px);
+    max-width: 760px; margin:0 auto; padding: 0 20px;
+  }
+  .chat-messages{
+    flex:1; overflow-y:auto; padding: 24px 0 12px; display:flex; flex-direction:column; gap:16px;
+    scroll-behavior:smooth;
+  }
+  .chat-msg{ display:flex; }
+  .chat-msg.user{ justify-content:flex-end; }
+  .chat-msg.model{ justify-content:flex-start; }
+  .chat-bubble{
+    max-width: 88%; padding: 12px 15px; border-radius:14px; font-size:14px; line-height:1.6;
+    overflow-wrap:anywhere; white-space:pre-wrap;
+  }
+  .chat-msg.user .chat-bubble{ background: var(--surface-2); border:1px solid var(--line); border-bottom-right-radius:4px; }
+  .chat-msg.model .chat-bubble{ background: var(--surface); border:1px solid var(--line-soft); border-bottom-left-radius:4px; }
+  .chat-bubble code{ font-family: var(--mono); font-size:12.5px; background: var(--bg); padding:1px 5px; border-radius:4px; }
+  .chat-file-tag{
+    display:inline-flex; align-items:center; gap:6px; font-family: var(--mono); font-size:11.5px;
+    color: var(--text-faint); border:1px dashed var(--line); border-radius:6px; padding:4px 9px; margin-bottom:8px;
+  }
+  .chat-typing{ display:flex; gap:4px; padding: 4px 0; }
+  .chat-typing span{
+    width:6px; height:6px; border-radius:50%; background: var(--text-faint);
+    animation: chatpulse 1.1s ease-in-out infinite;
+  }
+  .chat-typing span:nth-child(2){ animation-delay:.15s; }
+  .chat-typing span:nth-child(3){ animation-delay:.3s; }
+  @keyframes chatpulse{ 0%,60%,100%{ opacity:.3; transform: translateY(0); } 30%{ opacity:1; transform: translateY(-3px); } }
+
+  .chat-scan-card{
+    border:1px solid var(--line); border-radius:10px; overflow:hidden; margin-bottom:10px; background: var(--surface-2);
+  }
+  .chat-scan-head{ display:flex; align-items:center; gap:10px; padding:10px 13px; border-bottom:1px solid var(--line-soft); }
+  .chat-scan-head .fname{ font-family: var(--mono); font-size:12.5px; color: var(--text-dim); overflow-wrap:anywhere; }
+  .chat-scan-body{ padding: 6px 13px 10px; }
+  .chat-scan-row{ display:flex; gap:8px; align-items:flex-start; padding:6px 0; font-size:12.5px; border-top:1px solid var(--line-soft); }
+  .chat-scan-row:first-child{ border-top:none; }
+  .chat-scan-row .loc{ font-family: var(--mono); color: var(--text-faint); white-space:nowrap; }
+
+  .chat-composer{ border-top:1px solid var(--line); padding: 14px 0 20px; }
+  .chat-filechip{
+    display:inline-flex; align-items:center; gap:8px; font-family: var(--mono); font-size:12px;
+    color: var(--text-dim); background: var(--surface-2); border:1px solid var(--line); border-radius:7px;
+    padding:6px 8px 6px 11px; margin-bottom:9px; max-width:100%;
+  }
+  .chat-filechip .fname{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px; }
+  .chip-x{
+    background:none; border:none; color: var(--text-faint); cursor:pointer; font-size:15px; line-height:1;
+    padding:2px 4px; border-radius:4px;
+  }
+  .chip-x:hover{ color: var(--critical); }
+  .chat-input-row{
+    display:flex; align-items:flex-end; gap:8px; background: var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:8px 8px 8px 10px;
+  }
+  .chat-attach, .chat-send{
+    flex-shrink:0; width:36px; height:36px; border-radius:10px; border:1px solid var(--line);
+    background: var(--surface-2); color: var(--text-dim); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition: color .15s ease, border-color .15s ease;
+  }
+  .chat-attach:hover{ color: var(--text); border-color: var(--text-dim); }
+  .chat-send{ background: var(--safe); color:#08130E; border-color: var(--safe); }
+  .chat-send:hover{ filter: brightness(1.08); }
+  .chat-send:disabled{ opacity:.5; cursor:not-allowed; filter:none; }
+  #chatTextarea{
+    flex:1; min-width:0; resize:none; background:none; border:none; color: var(--text);
+    font-family: inherit; font-size:15px; line-height:1.5; padding:7px 4px; max-height:160px;
+  }
+  #chatTextarea:focus{ outline:none; }
+  @media (max-width: 900px){
+    .chat-shell{ height: calc(100dvh - 66px); padding: 0 14px; }
+    .chat-bubble{ max-width:94%; }
+  }
+
   .scanner{ background: var(--surface); border:1px solid var(--line); border-radius: 12px; overflow:hidden; }
   .scanner-tabs{ display:flex; border-bottom:1px solid var(--line); background: var(--surface-2); overflow-x:auto; }
   .scanner-tab{
@@ -284,6 +361,19 @@
   .finding-desc .loc{ font-family: var(--mono); font-size:11.5px; color: var(--text-faint); margin-bottom:3px; overflow-wrap:anywhere; }
   .finding-desc .txt{ font-size:13.5px; line-height:1.5; }
   .finding-desc .msg{ font-size:12.5px; color: var(--text-dim); margin-top:5px; line-height:1.55; }
+  .ai-suggest-btn{
+    font-family: var(--mono); font-size:11px; color: var(--text-faint); background:none;
+    border:1px dashed var(--line); border-radius:6px; padding:4px 9px; cursor:pointer; margin-top:8px;
+  }
+  .ai-suggest-btn:hover{ color: var(--text-dim); border-color: var(--text-dim); }
+  .ai-suggest-btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .ai-suggest-box{
+    margin-top:8px; padding:10px 12px; background: var(--bg); border:1px solid var(--line-soft);
+    border-radius:8px; font-size:12.5px; color: var(--text-dim); line-height:1.6; white-space:pre-wrap;
+    overflow-wrap:anywhere;
+  }
+  .ai-suggest-box.err{ color: var(--critical); border-color: rgba(255,92,92,.3); }
+  .ai-tag{ font-family: var(--mono); font-size:9.5px; color: var(--safe); text-transform:uppercase; letter-spacing:.06em; display:block; margin-bottom:5px; }
   .conf-tag{
     font-family: var(--mono); font-size:10.5px; padding:2px 7px; border-radius:4px; flex-shrink:0;
     background: var(--surface-2); color: var(--text-faint); border:1px solid var(--line); white-space:nowrap;
@@ -376,18 +466,52 @@
     <div class="nav-inner">
       <a href="#/" class="logo" data-nav><span class="logo-mark"></span>redline</a>
       <div class="nav-links" id="navLinks">
-        <a href="#/" data-nav data-page="home">Home</a>
-        <a href="#/scan" data-nav data-page="scan">Scan</a>
+        <a href="#/" data-nav data-page="chat">Chat</a>
+        <a href="#/scan" data-nav data-page="scan">Full scan report</a>
         <a href="#/rules" data-nav data-page="rules">Detection rules</a>
         <a href="#/roadmap" data-nav data-page="roadmap">Roadmap</a>
+        <a href="#/about" data-nav data-page="about">About</a>
       </div>
-      <a href="#/scan" class="btn btn-primary" data-nav>Run a scan</a>
+      <a href="#/scan" class="btn btn-primary" data-nav>Full report</a>
       <button class="nav-toggle" id="navToggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="navLinks"><span></span></button>
     </div>
   </nav>
 
-  <!-- ============ HOME ============ -->
-  <div class="page" data-page="home">
+  <!-- ============ CHAT (default landing) ============ -->
+  <div class="page active" data-page="chat">
+    <div class="chat-shell">
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg model">
+          <div class="chat-bubble">
+            Hey — I'm Redline's assistant. Attach a code file (or paste it below) and I'll scan it for
+            real vulnerabilities, then you can ask me anything about the findings — "how do I fix #2?",
+            "is this actually exploitable?", whatever. You can also just ask a security or coding question
+            with no file at all.
+          </div>
+        </div>
+      </div>
+      <div class="chat-composer">
+        <div class="chat-filechip" id="chatFileChip" style="display:none;">
+          <span class="fname" id="chatFileName"></span>
+          <button type="button" class="chip-x" id="chatFileRemove" aria-label="Remove file">×</button>
+        </div>
+        <div class="chat-input-row">
+          <button type="button" class="chat-attach" id="chatAttachBtn" aria-label="Attach a file" title="Attach a file">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 10.5V17a5 5 0 0 1-10 0V6.5a3.5 3.5 0 0 1 7 0V15a2 2 0 0 1-4 0V8"/></svg>
+          </button>
+          <input type="file" id="chatFileInput" style="display:none;" accept=".js,.jsx,.ts,.tsx,.mjs,.cjs,.py,.env,.example,.json" />
+          <textarea id="chatTextarea" rows="1" placeholder="Paste code, ask a question, or attach a file above…"></textarea>
+          <button type="button" class="chat-send" id="chatSendBtn" aria-label="Send">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11.5l17.5-8.5-8.5 17.5-2-7-7-2z"/></svg>
+          </button>
+        </div>
+        <div class="scanner-hint" style="margin-top:8px;">Scanning is always free and local. Follow-up questions and fix suggestions use Google's Gemini API — only when this deployment has it configured.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ABOUT (old marketing home) ============ -->
+  <div class="page" data-page="about">
     <section class="hero wrap">
       <div class="hero-grid">
         <div>
@@ -506,7 +630,7 @@ app.post('/checkout', async (req, res) => {
   await supabase.from('orders').insert({ user_id, amount })
   res.send('ok')
 })</textarea>
-            <div class="scanner-hint">Runs entirely against the text you paste — nothing is stored server-side.</div>
+            <div class="scanner-hint">Runs entirely against the text you paste — nothing is stored server-side. The optional "Suggest fix (AI)" button on a finding sends just that finding's snippet to Google's Gemini API — only when you click it.</div>
           </div>
           <div class="scanner-pane" id="paneRepo">
             <input type="url" id="repoInput" placeholder="https://github.com/owner/repo" autocomplete="off" />
@@ -676,9 +800,9 @@ app.post('/checkout', async (req, res) => {
   }
   function routeFromHash(){
     var h = (location.hash || '#/').replace('#/', '').replace('#', '');
-    var valid = ['home','scan','rules','roadmap'];
-    var name = h === '' ? 'home' : h;
-    if (valid.indexOf(name) === -1) name = 'home';
+    var valid = ['chat','scan','rules','roadmap','about'];
+    var name = h === '' ? 'chat' : h;
+    if (valid.indexOf(name) === -1) name = 'chat';
     showPage(name);
   }
   window.addEventListener('hashchange', routeFromHash);
@@ -808,17 +932,57 @@ app.post('/checkout', async (req, res) => {
   function renderFindings(){
     if(!lastResult) return;
     var findings = lastResult.findings.filter(function(f){ return activeFilter === 'all' || f.severity === activeFilter; });
-    resultsBody.innerHTML = findings.map(function(f){
+    resultsBody.innerHTML = findings.map(function(f, idx){
       return '<div class="finding">' +
         '<span class="sev ' + f.severity + '"><span class="dot"></span>' + sevLabel(f.severity) + '</span>' +
         '<div class="finding-desc">' +
           '<div class="loc">' + escHtml(f.file) + ':' + f.line + '</div>' +
           '<div class="txt">' + escHtml(f.title) + '</div>' +
           '<div class="msg">' + escHtml(f.message) + '</div>' +
+          '<button type="button" class="ai-suggest-btn" data-idx="' + idx + '">✦ Suggest fix (AI)</button>' +
+          '<div class="ai-suggest-box" data-box="' + idx + '" style="display:none;"></div>' +
         '</div>' +
         '<span class="conf-tag">' + confidenceOf(f) + ' confidence</span>' +
         '</div>';
     }).join('') || '<div class="results-empty">No findings match this filter.</div>';
+
+    resultsBody.querySelectorAll('.ai-suggest-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-idx'), 10);
+        var f = findings[idx];
+        var box = resultsBody.querySelector('[data-box="' + idx + '"]');
+        requestAiSuggestion(f, btn, box);
+      });
+    });
+  }
+
+  async function requestAiSuggestion(f, btn, box){
+    btn.disabled = true;
+    var originalLabel = btn.textContent;
+    btn.textContent = 'Asking Gemini…';
+    box.style.display = 'block';
+    box.className = 'ai-suggest-box';
+    box.textContent = 'Thinking…';
+    try{
+      var res = await fetch('/api/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: f.title, message: f.message, snippet: f.snippet, file: f.file, ruleId: f.ruleId })
+      });
+      var data = await res.json();
+      if(!res.ok){
+        box.className = 'ai-suggest-box err';
+        box.textContent = data.error || 'AI suggestion failed.';
+      } else {
+        box.innerHTML = '<span class="ai-tag">Gemini suggestion — verify before applying</span>' + escHtml(data.suggestion);
+      }
+    }catch(e){
+      box.className = 'ai-suggest-box err';
+      box.textContent = 'Network error reaching the AI suggestion endpoint.';
+    }finally{
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
   }
 
   function renderFilters(summary){
@@ -961,6 +1125,161 @@ app.post('/checkout', async (req, res) => {
   }
   scanBtn.addEventListener('click', runScan);
   renderHistory();
+})();
+
+// ---------------- Chat ----------------
+(function(){
+  var messagesEl = document.getElementById('chatMessages');
+  var textarea = document.getElementById('chatTextarea');
+  var sendBtn = document.getElementById('chatSendBtn');
+  var attachBtn = document.getElementById('chatAttachBtn');
+  var fileInput = document.getElementById('chatFileInput');
+  var fileChip = document.getElementById('chatFileChip');
+  var fileNameEl = document.getElementById('chatFileName');
+  var fileRemoveBtn = document.getElementById('chatFileRemove');
+  if(!messagesEl) return; // chat markup not present, bail quietly
+
+  var pendingFile = null; // {name, content}
+  var history = []; // [{role:'user'|'model', text}]
+  var MAX_CHAT_FILE_BYTES = 200000;
+
+  function escHtmlChat(str){ return String(str).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c] || c; }); }
+  // light escaping, then a tiny markdown-ish pass for **bold** and `code`
+  function renderInline(text){
+    var esc = String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    esc = esc.replace(/```([\s\S]*?)```/g, function(m, code){ return '<code style="display:block;white-space:pre-wrap;padding:8px;margin:6px 0;">' + code.trim() + '</code>'; });
+    esc = esc.replace(/`([^`]+)`/g, '<code>$1</code>');
+    esc = esc.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    return esc;
+  }
+
+  function scrollToBottom(){ messagesEl.scrollTop = messagesEl.scrollHeight; }
+
+  function addUserMessage(text, fileMeta){
+    var div = document.createElement('div');
+    div.className = 'chat-msg user';
+    var fileTag = fileMeta ? '<div class="chat-file-tag">📎 ' + escHtmlChat(fileMeta.name) + '</div>' : '';
+    div.innerHTML = '<div class="chat-bubble">' + fileTag + renderInline(text || '') + '</div>';
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function addTypingIndicator(){
+    var div = document.createElement('div');
+    div.className = 'chat-msg model';
+    div.id = 'chatTyping';
+    div.innerHTML = '<div class="chat-bubble"><div class="chat-typing"><span></span><span></span><span></span></div></div>';
+    messagesEl.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function scanCardHtml(fileName, findings, summary, grade){
+    var rows = findings.slice(0, 12).map(function(f){
+      return '<div class="chat-scan-row"><span class="sev ' + f.severity + '" style="flex-shrink:0;"><span class="dot"></span></span>' +
+        '<div><div class="loc">' + escHtmlChat(f.file) + ':' + f.line + '</div>' + escHtmlChat(f.title) + '</div></div>';
+    }).join('');
+    var more = findings.length > 12 ? '<div class="chat-scan-row" style="color:var(--text-faint);">+' + (findings.length - 12) + ' more finding(s)</div>' : '';
+    return '<div class="chat-scan-card">' +
+      '<div class="chat-scan-head"><span class="grade-badge grade-' + grade + '">' + grade + '</span>' +
+      '<span class="fname">' + escHtmlChat(fileName) + ' — ' + summary.critical + ' critical · ' + summary.warning + ' warning · ' + summary.info + ' info</span></div>' +
+      '<div class="chat-scan-body">' + (rows || '<div class="chat-scan-row">No findings.</div>') + more + '</div></div>';
+  }
+
+  function addModelMessage(replyText, findings, summary, grade, fileName){
+    var div = document.createElement('div');
+    div.className = 'chat-msg model';
+    var card = (findings && findings.length >= 0 && summary) ? scanCardHtml(fileName, findings, summary, grade) : '';
+    div.innerHTML = '<div class="chat-bubble">' + card + renderInline(replyText) + '</div>';
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function addErrorMessage(text){
+    var div = document.createElement('div');
+    div.className = 'chat-msg model';
+    div.innerHTML = '<div class="chat-bubble" style="border-color: rgba(255,92,92,.35); color: var(--critical);">⚠ ' + escHtmlChat(text) + '</div>';
+    messagesEl.appendChild(div);
+    scrollToBottom();
+  }
+
+  function autoGrow(){
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, 160) + 'px';
+  }
+  textarea.addEventListener('input', autoGrow);
+  textarea.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendChat(); }
+  });
+
+  attachBtn.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', async function(){
+    var f = fileInput.files[0];
+    if(!f) return;
+    if(f.size > MAX_CHAT_FILE_BYTES){
+      addErrorMessage('That file is too large for this prototype (limit ~200KB). Try a smaller file or paste the relevant part.');
+      fileInput.value = '';
+      return;
+    }
+    var content = await f.text().catch(function(){ return null; });
+    if(content == null){
+      addErrorMessage('Couldn\'t read that file as text — is it a binary file?');
+      fileInput.value = '';
+      return;
+    }
+    pendingFile = { name: f.name, content: content };
+    fileNameEl.textContent = f.name;
+    fileChip.style.display = 'inline-flex';
+    fileInput.value = '';
+  });
+  fileRemoveBtn.addEventListener('click', function(){
+    pendingFile = null;
+    fileChip.style.display = 'none';
+  });
+
+  var sending = false;
+  async function sendChat(){
+    if(sending) return;
+    var text = textarea.value.trim();
+    var file = pendingFile;
+    if(!text && !file) return;
+
+    addUserMessage(text, file);
+    textarea.value = '';
+    autoGrow();
+    pendingFile = null;
+    fileChip.style.display = 'none';
+    sending = true;
+    sendBtn.disabled = true;
+    var typingEl = addTypingIndicator();
+
+    try{
+      var res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, file: file || undefined, history: history })
+      });
+      var data = await res.json();
+      typingEl.remove();
+      if(!res.ok){
+        addErrorMessage(data.error || 'Chat request failed.');
+        sending = false;
+        sendBtn.disabled = false;
+        return;
+      }
+      addModelMessage(data.reply, data.findings, data.summary, data.grade, file ? file.name : null);
+      history.push({ role: 'user', text: file ? '[attached ' + file.name + '] ' + (text || 'Scan this file.') : text });
+      history.push({ role: 'model', text: data.reply });
+      if(history.length > 40) history = history.slice(-40);
+    }catch(e){
+      typingEl.remove();
+      addErrorMessage('Network error reaching the chat endpoint — is /api/chat deployed?');
+    }finally{
+      sending = false;
+      sendBtn.disabled = false;
+    }
+  }
+  sendBtn.addEventListener('click', sendChat);
 })();
 </script>
 </body>
