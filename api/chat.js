@@ -664,7 +664,7 @@ function scanText(filename, text) {
 }
 
 // ---------- config ----------
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const MAX_FILE_CHARS = 20000;
 const MAX_HISTORY_TURNS = 20; // most recent N turns kept, older ones dropped
@@ -746,7 +746,8 @@ async function callGemini(apiKey, history, newUserText) {
     throw err;
   }
   if (!geminiRes.ok) {
-    const err = new Error('Gemini API error (' + geminiRes.status + ')');
+    const errBody = await geminiRes.text().catch(() => '');
+    const err = new Error('Gemini API error (' + geminiRes.status + '): ' + errBody.slice(0, 300));
     err.code = 'ERROR';
     throw err;
   }

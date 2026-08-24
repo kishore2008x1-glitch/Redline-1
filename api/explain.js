@@ -89,7 +89,8 @@ module.exports = async function handler(req, res) {
       return;
     }
     if (!geminiRes.ok) {
-      res.status(502).json({ error: 'Gemini API error (' + geminiRes.status + ')' });
+      const errBody = await geminiRes.text().catch(() => '');
+      res.status(502).json({ error: 'Gemini API error (' + geminiRes.status + '): ' + errBody.slice(0, 300) });
       return;
     }
 
