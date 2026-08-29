@@ -1,101 +1,67 @@
-// api/chat.js
-// Conversational endpoint: chat about code, attach a file to scan it, and
-// ask follow-up questions about the findings. Self-contained (the rule
-// engine below is duplicated from api/scan.js on purpose — every Vercel
-// function here must survive on its own with zero cross-file require()).
-//
-// The deterministic scanner (below) runs on every attached file whether or
-// not Gemini is configured, so scanning stays free. Free-form conversation
-// and "how do I fix this" answers require GEMINI_API_KEY (Vercel env var —
-// never hardcode it here). Without that key, attaching a file still returns
-// real findings, just without the conversational layer.
+// ---------- config ----------
+// Use a standard supported model name
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const SEVERITY = { CRITICAL: 'critical', WARNING: 'warning', INFO: 'info' };
+// ... keep scanner code unchanged ...
 
-// ---------- rule engine helpers ----------
-function findAll(regex, text) {
-  const out = [];
-  const re = new RegExp(
-    regex.source,
-    regex.flags.includes('g') ? regex.flags : regex.flags + 'g'
-  );
+async function callGemini(apiKey, history, newUserText) {
+  const contents = history.slice(-MAX_HISTORY_TURNS).map((turn) => ({
+    role: turn.role === 'model' ? 'model' : 'user',
+    parts: [{ text: String(turn.text || '').slice(0, 4000) }],
+  }));
+  contents.push({ role: 'user', parts: [{ text: newUserText }] });
 
-  let m;
-  while ((m = re.exec(text)) !== null) {
-    out.push({
-      index: m.index,
-      match: m[0],
-      groups: m.slice(1)
-    });
+  // Append key as query parameter for standard REST calls
+  const urlWithKey = `${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`;
 
-    if (m.index === re.lastIndex) re.lastIndex++;
+  const geminiRes = await fetch(urlWithKey, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json' 
+    },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+      contents,
+      generationConfig: { 
+        maxOutputTokens: 1024, 
+        temperature: 0.3 
+      },
+    }),
+  });
+
+  if (geminiRes.status === 429) {
+    const err = new Error('Gemini\'s free-tier quota was hit for this key. Try again shortly.');
+    err.code = 'QUOTA';
+    throw err;
+  }
+  if (geminiRes.status === 400 || geminiRes.status === 403) {
+    const errBody = await geminiRes.json().catch(() => ({}));
+    const err = new Error('Gemini rejected the request: ' + (errBody.error && errBody.error.message ? errBody.error.message : geminiRes.status));
+    err.code = 'REJECTED';
+    throw err;
+  }
+  if (!geminiRes.ok) {
+    const errBody = await geminiRes.text().catch(() => '');
+    const err = new Error('Gemini API error (' + geminiRes.status + '): ' + errBody.slice(0, 300));
+    err.code = 'ERROR';
+    throw err;
   }
 
-  return out;
+  const data = await geminiRes.json();
+  const candidate = data && data.candidates && data.candidates[0];
+  const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] &&
+    candidate.content.parts[0].text;
+
+  if (!text) {
+    const err = new Error('Gemini returned an empty response' + (candidate && candidate.finishReason ? ' (finishReason: ' + candidate.finishReason + ')' : '') + '.');
+    err.code = 'EMPTY';
+    throw err;
+  }
+  
+  const truncated = candidate.finishReason === 'MAX_TOKENS';
+  return text.trim() + (truncated ? '\n\n[cut off — hit the response length limit; ask me to continue]' : '');
 }
-
-function lineOf(text, index) {
-  return text.slice(0, index).split('\n').length;
-}
-
-function lineText(text, index) {
-  const start = text.lastIndexOf('\n', index) + 1;
-  let end = text.indexOf('\n', index);
-
-  if (end === -1) end = text.length;
-
-  return text.slice(start, end).trim().slice(0, 160);
-}
-
-function redactSecret(snippet) {
-  return snippet.replace(
-    /([A-Za-z0-9_-]{6})[A-Za-z0-9_-]{6,}/g,
-    (full, keep) => {
-      if (
-        /^(sk_live|sk_test|AKIA|AIza|eyJ)/.test(full) ||
-        full.length > 24
-      ) {
-        return keep + '…redacted…';
-      }
-
-      return full;
-    }
-  );
-}
-
-// ---------- secret detection ----------
-
-const SECRET_RULES = [
-  {
-    name: 'Stripe live secret key',
-    re: /sk_live_[0-9a-zA-Z]{10,}/,
-    severity: SEVERITY.CRITICAL
-  },
-
-  {
-    name: 'Stripe test secret key',
-    re: /sk_test_[0-9a-zA-Z]{10,}/,
-    severity: SEVERITY.WARNING
-  },
-
-  {
-    name: 'AWS access key ID',
-    re: /AKIA[0-9A-Z]{16}/,
-    severity: SEVERITY.CRITICAL
-  },
-
-  {
-    name: 'Google API key',
-    re: /AIza[0-9A-Za-z-_]{35}/,
-    severity: SEVERITY.CRITICAL
-  },
-
-  {
-    name: 'Slack token',
-    re: /xox[baprs]-[0-9a-zA-Z-]{10,}/,
-    severity: SEVERITY.CRITICAL
-  },
-
   {
     name: 'Private key block',
     re: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/,
