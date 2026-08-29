@@ -1,9 +1,8 @@
 // ---------- config ----------
-// Use a standard supported model name
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// ... keep scanner code unchanged ...
+// ... (keep scanner rule code unchanged) ...
 
 async function callGemini(apiKey, history, newUserText) {
   const contents = history.slice(-MAX_HISTORY_TURNS).map((turn) => ({
@@ -12,20 +11,18 @@ async function callGemini(apiKey, history, newUserText) {
   }));
   contents.push({ role: 'user', parts: [{ text: newUserText }] });
 
-  // Append key as query parameter for standard REST calls
-  const urlWithKey = `${GEMINI_URL}?key=${encodeURIComponent(apiKey)}`;
-
-  const geminiRes = await fetch(urlWithKey, {
+  const geminiRes = await fetch(GEMINI_URL, {
     method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json' 
+    headers: {
+      'Content-Type': 'application/json',
+      'X-goog-api-key': apiKey // Header populated from process.env.GEMINI_API_KEY
     },
     body: JSON.stringify({
       system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
       contents,
-      generationConfig: { 
-        maxOutputTokens: 1024, 
-        temperature: 0.3 
+      generationConfig: {
+        maxOutputTokens: 1024,
+        temperature: 0.3
       },
     }),
   });
@@ -52,50 +49,14 @@ async function callGemini(apiKey, history, newUserText) {
   const candidate = data && data.candidates && data.candidates[0];
   const text = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0] &&
     candidate.content.parts[0].text;
-
   if (!text) {
     const err = new Error('Gemini returned an empty response' + (candidate && candidate.finishReason ? ' (finishReason: ' + candidate.finishReason + ')' : '') + '.');
     err.code = 'EMPTY';
     throw err;
   }
-  
   const truncated = candidate.finishReason === 'MAX_TOKENS';
   return text.trim() + (truncated ? '\n\n[cut off — hit the response length limit; ask me to continue]' : '');
 }
-  {
-    name: 'Private key block',
-    re: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/,
-    severity: SEVERITY.CRITICAL
-  },
-
-  {
-    name: 'Supabase / JWT-style service key',
-    re: /eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}/,
-    severity: SEVERITY.CRITICAL,
-    guard: (snippet) => !/process\.env/.test(snippet)
-  },
-
-  {
-    name: 'Generic hardcoded secret',
-    re: /(api[_-]?key|secret[_-]?key|access[_-]?token|client[_-]?secret|password)\s*[:=]\s*['"`][A-Za-z0-9\-_/+=]{16,}['"`]/i,
-    severity: SEVERITY.WARNING,
-    guard: (snippet) =>
-      !/process\.env|import\.meta\.env|__PLACEHOLDER__|xxxx|your[_-]?key/i.test(
-        snippet
-      )
-  }
-];
-
-const SENSITIVE_ROUTE =
-  /\b(app|router)\.(get|post|put|patch|delete)\s*\(\s*['"`](\/[^'"`]*)?(checkout|payment|charge|admin|delete|withdraw|transfer|refund|order|subscribe)[^'"`]*['"`]/i;
-
-const AUTH_KEYWORDS =
-  /(requireAuth|isAuthenticated|verifyToken|authMiddleware|ensureLoggedIn|passport\.authenticate|req\.user\b|session\.user\b|getServerSession|auth\(\)|withAuth|checkAuth)/;
-
-const CLIENT_TRUST_VARS =
-  /\b(?:const|let|var)\s*\{\s*[^{}\n]*\b(amount|price|total|cost|quantity|role|isAdmin|admin)\b[^{}\n]*\}\s*=\s*req\.body/;
-
-const RECOMPUTE_KEYWORDS =
   /(calculatePrice|getPrice|computeTotal|priceFor|lookupPrice|server[_-]?side)/i;
 
 
